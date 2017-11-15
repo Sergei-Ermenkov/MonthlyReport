@@ -37,7 +37,7 @@ public class Test {
         ExcelData e = new ExcelData();
         e.readFromExcel(path);
         e.makeReport();
-        e.writeToExcel("workbook.xls");
+        e.writeToExcel("workbook.xlsx", "сентябрь 2017");
 //        new Test().extractor(path);
     }
 

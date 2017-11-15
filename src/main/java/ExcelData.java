@@ -1,9 +1,6 @@
-import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.model.StylesTable;
 import org.apache.poi.xssf.usermodel.*;
 
 import java.io.FileInputStream;
@@ -13,12 +10,14 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ExcelData {
+class ExcelData {
     private static final Logger LOGGER = Logger.getLogger(Test.class.getName());
 
     private List<Event> events = new ArrayList<>();
     private Map<Branches, Map<String, List<Participant>>> report = new HashMap<>();
-    private XSSFWorkbook workbook = new XSSFWorkbook();
+
+    private List<List<CellData>> rowForWorkbook;
+
 
 
     private static void createCell(XSSFRow row, int column, String value, XSSFCellStyle cellStyle) {
@@ -108,10 +107,11 @@ public class ExcelData {
     }
 
 
-    void writeToExcel(String file) throws IOException {
+    void writeToExcel(String file, String date) throws IOException {
         if (report.isEmpty()) throw new NullPointerException("Не загружены данные в report");
 
-
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        ExcelStyles excelStyles = new ExcelStyles(workbook);
 
         for (Map.Entry<Branches, Map<String, List<Participant>>> filialList : report.entrySet()) {
             XSSFSheet sheet = workbook.createSheet(filialList.getKey().getFullName());
@@ -127,28 +127,67 @@ public class ExcelData {
             sheet.addMergedRegion(new CellRangeAddress(5, 5, 0, 3));
             sheet.addMergedRegion(new CellRangeAddress(6, 6, 0, 3));
 
-//            XSSFCellStyle style = workbook.createCellStyle();
-            XSSFCellStyle style = new XSSFCellStyle(new StylesTable());
+            // Добавление шапки в список для записи
+            rowForWorkbook = new ArrayList<>();
+            rowForWorkbook.add(0, new ArrayList<CellData>(){{ add(new CellData(3, "Приложение № 2.2 ", excelStyles.T9alRStyle));}});
+            rowForWorkbook.add(1, new ArrayList<CellData>(){{ add(new CellData(3, "Методики бухгалтерского и налогового учета операций, связанных с", excelStyles.T9alRStyle));}});
+            rowForWorkbook.add(2, new ArrayList<CellData>(){{ add(new CellData(3, "деятельностью УПЦ", excelStyles.T9alRStyle));}});
+            rowForWorkbook.add(3, new ArrayList<CellData>(){{ add(new CellData(0, "В филиал _______", excelStyles.T12balLWStyle));}});
+            rowForWorkbook.add(4, new ArrayList<>());
+            rowForWorkbook.add(5, new ArrayList<CellData>(){{ add(new CellData(0, "Отчет по обучению в УЧ (Зименки) УПЦ", excelStyles.T12balCStyle));}});
+            rowForWorkbook.add(6, new ArrayList<CellData>(){{ add(new CellData(0, "за _______ ХХХХ года", excelStyles.T12balCStyle));}});
+            rowForWorkbook.add(7, new ArrayList<>());
+            rowForWorkbook.add(8, new ArrayList<CellData>(){{ add(new CellData(0, "№ п/п", excelStyles.T12balCWBStyle));}});
+            rowForWorkbook.get(8).add(new CellData(1, "Ф.И.О. слушателя", excelStyles.T12balCWBStyle));
+            rowForWorkbook.get(8).add(new CellData(2, "Наименование курса обучения", excelStyles.T12balCWBStyle));
+            rowForWorkbook.get(8).add(new CellData(3, "Количество человеко-часов", excelStyles.T12balCWBStyle));
+            rowForWorkbook.add(8, new ArrayList<CellData>(){{ add(new CellData(0, "№ п/п", excelStyles.T12balCWBStyle));}});
+            rowForWorkbook.get(8).add(new CellData(1, "Ф.И.О. слушателя", excelStyles.T12balCWBStyle));
+            rowForWorkbook.get(8).add(new CellData(2, "Наименование курса обучения", excelStyles.T12balCWBStyle));
+            rowForWorkbook.get(8).add(new CellData(3, "Количество человеко-часов", excelStyles.T12balCWBStyle));
+            rowForWorkbook.add(9, new ArrayList<CellData>(){{ add(new CellData(0, "1", excelStyles.T12alCWBStyle));}});
+            rowForWorkbook.get(9).add(new CellData(1, "2", excelStyles.T12alCWBStyle));
+            rowForWorkbook.get(9).add(new CellData(2, "3", excelStyles.T12alCWBStyle));
+            rowForWorkbook.get(9).add(new CellData(3, "4", excelStyles.T12alCWBStyle));
 
-            XSSFRow row = sheet.createRow(0);
-            createCell(row, 3, "Приложение № 2.2 ", ExcelStyle.getT9alRStyle(workbook));
+            // Меняет в шапке название филиала
+            if (filialList.getKey() == Branches.АДМИНИСТРАЦИЯ){
+                rowForWorkbook.get(3).get(0).setValue("В Администрация OOO «Газпром трансгаз Москва»");
+            }else {
+                rowForWorkbook.get(3).get(0).setValue("В филиал " + filialList.getKey().getFullName());
+            }
 
+            // Меняем месяц
+            rowForWorkbook.get(6).get(0).setValue("за " + date + " года");
 
+            for (Map.Entry<String, List<Participant>> event: filialList.getValue().entrySet()) {
+                ArrayList<CellData> row = new ArrayList<>();
 
-//            shapka = ((1, 4, 'Приложение № 2.2 ', styT9alR),
-//            (2, 4, 'Методики бухгалтерского и налогового учета операций, связанных с', styT9alR),
-//            (3, 4, 'деятельностью УПЦ', styT9alR),
-//            (4, 1, 'В филиал _______', styT12balLW),
-//            (6, 1, 'Отчет по обучению в УЧ (Зименки) УПЦ', styT12balC),
-//            (7, 1, 'за _______ 2015 года', styT12balC),
-//            (9, 1, '№ п/п', styT12balCWB),
-//            (9, 2, 'Ф.И.О. слушателя', styT12balCWB),
-//            (9, 3, 'Наименование курса обучения', styT12balCWB),
-//            (9, 4, 'Количество человеко-часов', styT12balCWB),
-//            (10, 1, '1', styT12alCWB),
-//            (10, 2, '2', styT12alCWB),
-//            (10, 3, '3', styT12alCWB),
-//            (10, 4, '4', styT12alCWB))
+                //CellData cellData = new CellData();
+            }
+
+            //            # Добавляем людей и мероприятия в отчет
+//            numPers = 0
+//            for namMerop, peoples in meropr.items():
+//            magerStart = 11+numPers
+//            addCell(sheet, (11+numPers, 3, namMerop, styMerop))
+//            for people in peoples:
+//            addCell(sheet, (11+numPers, 1, str(numPers+1), styNum))
+//            addCell(sheet, (11+numPers, 2, people[0], styFIO))
+//            addCell(sheet, (11+numPers, 4, people[1], styTime))
+//            numPers += 1
+//            total_hour += people[1]
+//            total_pers += 1
+//            if len(peoples) > 1:
+//            sheet.merge_cells(start_row=magerStart, start_column=3, end_row=10+numPers, end_column=3)
+
+            for (int i = 0; i < rowForWorkbook.size(); i++){
+                if (rowForWorkbook.get(i).isEmpty()) continue;
+                XSSFRow row = sheet.createRow(i);
+                for (CellData rd : rowForWorkbook.get(i)) {
+                    createCell(row, rd.getNumColumn(),rd.getValue(),rd.getStyle());
+                }
+            }
 
 
             LOGGER.log(Level.FINEST, "Создан лист: {0}", filialList.getKey().getFullName());
@@ -171,7 +210,7 @@ public class ExcelData {
         FileOutputStream fileOut = new FileOutputStream("xssf-align.xlsx");
         wb.write(fileOut);
         fileOut.close();
-}
+        }
 
 
         private static void createCell(Workbook wb, Row row, short column, short halign, short valign) {
@@ -191,5 +230,4 @@ public class ExcelData {
             throw e;
         }
     }
-
 }
