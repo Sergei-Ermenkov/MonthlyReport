@@ -20,6 +20,8 @@ import java.util.logging.Logger;
 public class Test {
     private static final Logger LOGGER = Logger.getLogger(Test.class.getName());
 
+    //TODO посмотреть можно ли заменить на getCell/getRow(int cellnum, MissingCellPolicy policy)
+    //TODO CellUtil
     public static void main(String[] args) throws IOException {
         // Настройки протоколирования
         Handler handler = new ConsoleHandler();
@@ -29,13 +31,13 @@ public class Test {
         LOGGER.addHandler(handler);
 
         String path = "/Users/mac/IdeaProjects/MonthlyReport/src/main/java/Blank.xlsx";
-        String path1 = "/Users/mac/IdeaProjects/MonthlyReport/src/main/java/2017.xlsx";
+        String path1 = "/Users/mac/IdeaProjects/MonthlyReport/src/main/java/Spisok0817.xlsx";
 //        LOGGER.log(Level.FINEST, "Путь: {0}", path);
 
         XSSFWorkbook workbook = new XSSFWorkbook();
 
         ExcelData e = new ExcelData();
-        e.readFromExcel(path);
+        e.readFromExcel(path1);
         e.makeReport();
         e.writeToExcel("workbook.xlsx", "сентябрь 2017");
 //        new Test().extractor(path);

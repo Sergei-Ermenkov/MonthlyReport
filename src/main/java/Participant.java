@@ -9,21 +9,25 @@ class Participant {
     private Branches branch;
 
 
-    public Participant(String name, int manHours, Branches branch) {
+    private Participant(String name, int manHours, Branches branch) {
         this.name = name;
         this.manHours = manHours;
         this.branch = branch;
     }
 
-    public Participant(String name, int manHours, String branch) {
+    Participant(String name, int manHours, String branch) {
         this(name, manHours, findBranch(branch));
     }
 
-    public String getName() {
+    String getName() {
         return name;
     }
 
-    public Branches getBranch() {
+    int getManHours() {
+        return manHours;
+    }
+
+    Branches getBranch() {
         return branch;
     }
 
