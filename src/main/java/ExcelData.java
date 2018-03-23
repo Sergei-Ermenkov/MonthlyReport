@@ -1,8 +1,6 @@
-import org.apache.poi.ss.usermodel.PrintSetup;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.ss.util.CellUtil;
 import org.apache.poi.xssf.usermodel.*;
 
 import java.io.FileInputStream;
@@ -16,6 +14,8 @@ class ExcelData {
     private static final Logger LOGGER = Logger.getLogger(Test.class.getName());
 
     private List<Event> events = new ArrayList<>();
+
+
     private Map<Branches, Map<String, List<Participant>>> report = new HashMap<>();
 
 
@@ -121,7 +121,7 @@ class ExcelData {
         if (report.isEmpty()) throw new NullPointerException("Не загружены данные в report");
 
         XSSFWorkbook workbook = new XSSFWorkbook();
-        ExcelStyles excelStyles = new ExcelStyles(workbook);
+        CellStylesList cellStylesList = new CellStylesList(workbook);
 
         for (Map.Entry<Branches, Map<String, List<Participant>>> filialList : report.entrySet()) {
 
@@ -141,31 +141,31 @@ class ExcelData {
 
             // Добавление шапки в список для записи
             XSSFRow row = sheet.createRow(0);
-            createCell(row, 3, "Приложение № 2.2 ", excelStyles.T9alRStyle);
+            createCell(row, 3, "Приложение № 2.2 ", cellStylesList.t9alRStyle);
             row = sheet.createRow(1);
-            createCell(row, 3, "Методики бухгалтерского и налогового учета операций, связанных с", excelStyles.T9alRStyle);
+            createCell(row, 3, "Методики бухгалтерского и налогового учета операций, связанных с", cellStylesList.t9alRStyle);
             row = sheet.createRow(2);
-            createCell(row, 3, "деятельностью УПЦ", excelStyles.T9alRStyle);
+            createCell(row, 3, "деятельностью УПЦ", cellStylesList.t9alRStyle);
             row = sheet.createRow(3);
             if (filialList.getKey() == Branches.АДМИНИСТРАЦИЯ) {
-                createCell(row, 0, "В Администрация OOO «Газпром трансгаз Москва»", excelStyles.T12balLWStyle);
+                createCell(row, 0, "В Администрация OOO «Газпром трансгаз Москва»", cellStylesList.t12balLWStyle);
             } else {
-                createCell(row, 0, "В филиал " + filialList.getKey().getFullName(), excelStyles.T12balLWStyle);
+                createCell(row, 0, "В филиал " + filialList.getKey().getFullName(), cellStylesList.t12balLWStyle);
             }
             row = sheet.createRow(5);
-            createCell(row, 0, "Отчет по обучению в УЧ (Зименки) УПЦ", excelStyles.T12balCStyle);
+            createCell(row, 0, "Отчет по обучению в УЧ (Зименки) УПЦ", cellStylesList.t12balCStyle);
             row = sheet.createRow(6);
-            createCell(row, 0, "за " + date + " года", excelStyles.T12balCStyle);
+            createCell(row, 0, "за " + date + " года", cellStylesList.t12balCStyle);
             row = sheet.createRow(8);
-            createCell(row, 0, "№ п/п", excelStyles.T12balCWBStyle);
-            createCell(row, 1, "Ф.И.О. слушателя", excelStyles.T12balCWBStyle);
-            createCell(row, 2, "Наименование курса обучения", excelStyles.T12balCWBStyle);
-            createCell(row, 3, "Количество человеко-часов", excelStyles.T12balCWBStyle);
+            createCell(row, 0, "№ п/п", cellStylesList.t12balCWBStyle);
+            createCell(row, 1, "Ф.И.О. слушателя", cellStylesList.t12balCWBStyle);
+            createCell(row, 2, "Наименование курса обучения", cellStylesList.t12balCWBStyle);
+            createCell(row, 3, "Количество человеко-часов", cellStylesList.t12balCWBStyle);
             row = sheet.createRow(9);
-            createCell(row, 0, "1", excelStyles.T12alCWBStyle);
-            createCell(row, 1, "2", excelStyles.T12alCWBStyle);
-            createCell(row, 2, "3", excelStyles.T12alCWBStyle);
-            createCell(row, 3, "4", excelStyles.T12alCWBStyle);
+            createCell(row, 0, "1", cellStylesList.t12alCWBStyle);
+            createCell(row, 1, "2", cellStylesList.t12alCWBStyle);
+            createCell(row, 2, "3", cellStylesList.t12alCWBStyle);
+            createCell(row, 3, "4", cellStylesList.t12alCWBStyle);
 
 
             // Добавление людей по филиалам и мероприятиям
@@ -173,11 +173,16 @@ class ExcelData {
             int num = 0;
             for (Map.Entry<String, List<Participant>> event : filialList.getValue().entrySet()) {
                 int firstRowMerged = 10 + num;
-                createCell(row, 2, event.getKey(), excelStyles.MeropStyle);
+                createCell(row, 2, event.getKey(), cellStylesList.topicStyle);
+
+                //TODO тест
+                float a = row.getHeight();
+                LOGGER.log(Level.FINEST, "Высота ряда с ячейкой название мероприятия: {0}", a);
+
                 for (Participant participant : event.getValue()) {
-                    createCell(row, 0, String.valueOf(++num), excelStyles.NumStyle);
-                    createCell(row, 1, participant.getName(), excelStyles.FIOStyle);
-                    createCell(row, 3, participant.getManHours(), excelStyles.TimeStyle);
+                    createCell(row, 0, String.valueOf(++num), cellStylesList.numStyle);
+                    createCell(row, 1, participant.getName(), cellStylesList.fioStyle);
+                    createCell(row, 3, participant.getManHours(), cellStylesList.timeStyle);
 
                     row = sheet.createRow(sheet.getLastRowNum() + 1);
                 }
@@ -191,39 +196,39 @@ class ExcelData {
             sheet.addMergedRegion(new CellRangeAddress(num + 10, num + 10, 0, 2));
 
             //Добавление Итога и хвоста страницы
-            createCell(row, 0, "ИТОГО:", excelStyles.T12balRBStyle);
-            createCell(row, 1, "", excelStyles.T12balRBStyle);
-            createCell(row, 2, "", excelStyles.T12balRBStyle);
-            createCellFormula(row, 3, "SUM(D11:D"+ String.valueOf(num + 10) +")", excelStyles.T12balRBStyle);
+            createCell(row, 0, "ИТОГО:", cellStylesList.t12balRBStyle);
+            createCell(row, 1, "", cellStylesList.t12balRBStyle);
+            createCell(row, 2, "", cellStylesList.t12balRBStyle);
+            createCellFormula(row, 3, "SUM(D11:D"+ String.valueOf(num + 10) +")", cellStylesList.t12balRBStyle);
             row = sheet.createRow(sheet.getLastRowNum() + 2);
-            createCell(row, 0, "Начальник УПЦ", excelStyles.T12Style);
-            createCell(row, 2, "____________________", excelStyles.T12alCStyle);
-            createCell(row, 3, "Н.В.Судак", excelStyles.T12alCBBStyle);
+            createCell(row, 0, "Начальник УПЦ", cellStylesList.t12Style);
+            createCell(row, 2, "____________________", cellStylesList.t12alCStyle);
+            createCell(row, 3, "Н.В.Судак", cellStylesList.t12alCBBStyle);
             row = sheet.createRow(sheet.getLastRowNum() + 1);
-            createCell(row, 2, "подпись", excelStyles.T9alCStyle);
-            createCell(row, 3, "расшифровка подписи", excelStyles.T9alCStyle);
+            createCell(row, 2, "подпись", cellStylesList.t9alCStyle);
+            createCell(row, 3, "расшифровка подписи", cellStylesList.t9alCStyle);
             //Удалена подпись Пушкова
             /*
             row = sheet.createRow(sheet.getLastRowNum() + 2);
-            createCell(row, 0, "Заместитель начальника службы", excelStyles.T12Style);
+            createCell(row, 0, "Заместитель начальника службы", cellStylesList.t12Style);
             row = sheet.createRow(sheet.getLastRowNum() + 1);
-            createCell(row, 0, "по эксплуатации зданий и сооружений УПЦ", excelStyles.T12Style);
-            createCell(row, 2, "____________________", excelStyles.T12alCStyle);
-            createCell(row, 3, "А.В.Пушков", excelStyles.T12alCBBStyle);
+            createCell(row, 0, "по эксплуатации зданий и сооружений УПЦ", cellStylesList.t12Style);
+            createCell(row, 2, "____________________", cellStylesList.t12alCStyle);
+            createCell(row, 3, "А.В.Пушков", cellStylesList.t12alCBBStyle);
             row = sheet.createRow(sheet.getLastRowNum() + 1);
-            createCell(row, 2, "подпись", excelStyles.T9alCStyle);
-            createCell(row, 3, "расшифровка подписи", excelStyles.T9alCStyle);
+            createCell(row, 2, "подпись", cellStylesList.t9alCStyle);
+            createCell(row, 3, "расшифровка подписи", cellStylesList.t9alCStyle);
             */
             row = sheet.createRow(sheet.getLastRowNum() + 2);
-            createCell(row, 0, "Исполнитель:", excelStyles.T12Style);
+            createCell(row, 0, "Исполнитель:", cellStylesList.t12Style);
             row = sheet.createRow(sheet.getLastRowNum() + 1);
-            createCell(row, 0, "Ведущий инженер АСУ ТП", excelStyles.T12unStyle);
-            createCell(row, 2, "____________________", excelStyles.T12alCStyle);
-            createCell(row, 3, "С.А. Ерменков", excelStyles.T12alCBBStyle);
+            createCell(row, 0, "Ведущий инженер АСУ ТП", cellStylesList.t12unStyle);
+            createCell(row, 2, "____________________", cellStylesList.t12alCStyle);
+            createCell(row, 3, "С.А. Ерменков", cellStylesList.t12alCBBStyle);
             row = sheet.createRow(sheet.getLastRowNum() + 1);
-            createCell(row, 0, "должность", excelStyles.T9alLStyle);
-            createCell(row, 2, "подпись", excelStyles.T9alCStyle);
-            createCell(row, 3, "расшифровка подписи", excelStyles.T9alCStyle);
+            createCell(row, 0, "должность", cellStylesList.t9alLStyle);
+            createCell(row, 2, "подпись", cellStylesList.t9alCStyle);
+            createCell(row, 3, "расшифровка подписи", cellStylesList.t9alCStyle);
 
             //Добавляем свойство "Разместить не более чем на 1 странице"
             XSSFPrintSetup printSetup = sheet.getPrintSetup();
@@ -238,11 +243,11 @@ class ExcelData {
 //                    createCell(row, rd.getNumColumn(), rd.getValue(), rd.getStyle());
 //                }
 //            }
-
-
             LOGGER.log(Level.FINEST, "Создан лист: {0}", filialList.getKey().getFullName());
         }
 
+        //Запись в файл
+        //TODO отключена запись в файл
         try (FileOutputStream fileOut = new FileOutputStream(file)) {
             workbook.write(fileOut);
         } catch (Exception e) {

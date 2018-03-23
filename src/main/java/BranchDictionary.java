@@ -1,7 +1,9 @@
 import java.util.HashMap;
 import java.util.Map;
-
-public class Dictionary {
+/*
+Словарь соотнесения найденной строки с филиалом
+ */
+class BranchDictionary {
     static Map<String, Branches> branchesMap = new HashMap<String, Branches>(){{
         put("белгородско", Branches.БЕЛГОРОД);
         put("белоусовско", Branches.БЕЛОУСОВО);

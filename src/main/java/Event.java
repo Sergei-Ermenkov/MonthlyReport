@@ -4,7 +4,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Event {
+class Event {
     private static final Logger LOGGER = Logger.getLogger(Test.class.getName());
 
     private String topic;
@@ -12,34 +12,29 @@ public class Event {
     private TypeOfEvent type;
     private List<Participant> participants;
 
-    public Event(String topic, DateOfEvent date, TypeOfEvent type, List<Participant> participants) {
+    Event(String topic, String date, TypeOfEvent type) {
         this.topic = topic;
-        this.date = date;
+        this.date = findData(date);
         this.type = type;
-        this.participants = participants;
     }
 
-    public Event(String topic, String date, TypeOfEvent type) {
-        this(topic, findData(date), type, null);
-    }
-
-    public String getTopic() {
+    String getTopic() {
         return topic;
     }
 
-    public DateOfEvent getDate() {
+    DateOfEvent getDate() {
         return date;
     }
 
-    public TypeOfEvent getType() {
+    TypeOfEvent getType() {
         return type;
     }
 
-    public List<Participant> getParticipants() {
+    List<Participant> getParticipants() {
         return participants;
     }
 
-    public void setParticipants(List<Participant> participants) {
+    void setParticipants(List<Participant> participants) {
         this.participants = participants;
     }
 

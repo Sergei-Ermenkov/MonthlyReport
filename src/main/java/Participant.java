@@ -8,15 +8,10 @@ class Participant {
     private int manHours;
     private Branches branch;
 
-
-    private Participant(String name, int manHours, Branches branch) {
+    Participant(String name, int manHours, String branch) {
         this.name = name;
         this.manHours = manHours;
-        this.branch = branch;
-    }
-
-    Participant(String name, int manHours, String branch) {
-        this(name, manHours, findBranch(branch));
+        this.branch = findBranch(branch);
     }
 
     String getName() {
@@ -44,7 +39,7 @@ class Participant {
         // делаем все буквы маленькие и удаляем пробелы.
         String branchString = branch.toLowerCase().replaceAll("\\s", "");
         // сопостовляем строчку с ключами словоря филиалов
-        for (Map.Entry<String, Branches> entry : Dictionary.branchesMap.entrySet()) {
+        for (Map.Entry<String, Branches> entry : BranchDictionary.branchesMap.entrySet()) {
             if (branchString.contains(entry.getKey())) {
                 return entry.getValue();
             }

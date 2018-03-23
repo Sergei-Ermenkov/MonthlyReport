@@ -1,9 +1,9 @@
 import java.time.LocalDate;
-public class DateOfEvent {
+class DateOfEvent {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    public DateOfEvent(LocalDate startDate, LocalDate endDate) {
+    DateOfEvent(LocalDate startDate, LocalDate endDate) {
         this.startDate = startDate;
         this.endDate = endDate;
     }
