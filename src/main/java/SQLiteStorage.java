@@ -1,5 +1,4 @@
 import eхcel.CellData;
-import org.sqlite.SQLiteException;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -11,8 +10,14 @@ import java.util.*;
 //todo посмотреть на http://zametkinapolyah.ru/zametki-o-mysql/chast-9-3-komanda-rollback-v-bazax-dannyx-sqlite-operator-rollback-v-sqlite3.html#__ROLLBACK_TRANSACTION_SQLite3
 class SQLiteStorage{
 
+    private final String url;
+
+    SQLiteStorage(String database){
+        url = "jdbc:sqlite:" + database;
+    }
+
     private Connection connect() throws SQLException {
-        String url = "jdbc:sqlite:data.db";
+        //String url = "jdbc:sqlite:data.db";
         Connection conn;
         try {
             Properties properties = new Properties();
@@ -35,7 +40,7 @@ class SQLiteStorage{
      * @param beginDate Дата начала мероприятия
      * @param endDate   Дата кончания мероприятия
      * @return id добавляемого мероприятия
-     * @throws SQLException
+     * @throws SQLException Ошибки при обращении к SQLite
      */
     int addEvent(EventTypes type, String name, String decree, LocalDate beginDate, LocalDate endDate) throws SQLException {
         String check = "SELECT id FROM events WHERE name=? AND decree=? AND begin_date=? AND end_date=?";
@@ -86,7 +91,7 @@ class SQLiteStorage{
      * @param position  Должность
      * @param branch_id Филиал (по словарю)
      * @return id добавляемого человека
-     * @throws SQLException
+     * @throws SQLException Ошибки при обращении к SQLite
      */
     int addPerson(String name, String position, int branch_id) throws SQLException {
         String check = "SELECT id FROM persons WHERE name=? AND position=? AND branch_id=?";
@@ -133,7 +138,7 @@ class SQLiteStorage{
      * @param event_id  id мероприятия
      * @param person_id id человека
      * @param man_hours количество человекочасов
-     * @throws SQLException
+     * @throws SQLException Ошибки при обращении к SQLite
      */
     void addPersonToEvent(int event_id, int person_id, int man_hours) throws SQLException {
         String check = "SELECT COUNT(*) FROM events_persons WHERE event_id=? AND person_id=?";
@@ -165,7 +170,7 @@ class SQLiteStorage{
      * Загружает словать филиалов
      *
      * @return Словать филиалов
-     * @throws SQLException
+     * @throws SQLException Ошибки при обращении к SQLite
      */
     Map<String, Integer> getBranchPatterns() throws SQLException {
         String sql = "SELECT pattern, branch_id FROM branch_patterns";
@@ -182,8 +187,8 @@ class SQLiteStorage{
     }
 
     //Списков филиалов вошедших в отчет за указанные даты
-    List<String> getBranchesListInReport(LocalDate beginDate, LocalDate endDate, EventTypes type) throws SQLException {
-        List<String> result = new ArrayList<>();
+    Set<String> getBranchesListInReport(LocalDate beginDate, LocalDate endDate, EventTypes type) throws SQLException {
+        Set<String> result = new HashSet<>();
         String sql = "SELECT branch FROM report WHERE ((begin_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?)) AND type=? GROUP BY branch";
         try (Connection conn = this.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -229,19 +234,17 @@ class SQLiteStorage{
     Map<String, Integer> getPersonsInEventListInReport(String branch,
                                                        String event_name,
                                                        LocalDate beginDate,
-                                                       LocalDate endDate,
-                                                       EventTypes type) throws SQLException {
+                                                       LocalDate endDate) throws SQLException {
         Map<String, Integer> result = new HashMap<>();
-        String sql = "SELECT person_name, man_hours FROM report WHERE ((begin_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?)) AND type=? AND branch=? AND event_name=?";
+        String sql = "SELECT person_name, man_hours FROM report WHERE ((begin_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?)) AND branch=? AND event_name=?";
         try (Connection conn = this.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, beginDate.toString());
             pstmt.setString(2, endDate.toString());
             pstmt.setString(3, beginDate.toString());
             pstmt.setString(4, endDate.toString());
-            pstmt.setInt(5, type.ordinal());
-            pstmt.setString(6, branch);
-            pstmt.setString(7, event_name);
+            pstmt.setString(5, branch);
+            pstmt.setString(6, event_name);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 result.put(rs.getString(1), rs.getInt(2));

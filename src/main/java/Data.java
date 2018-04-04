@@ -1,6 +1,6 @@
 import eхcel.CellData;
 import eхcel.ExcelStyles;
-import javafx.print.Collation;
+import eхcel.Util;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -14,13 +14,21 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-
+//TODO попробовать написать с помощю org.apache.poi.ss.util.CellUtil.createCell(Row row, int column, java.lang.String value)
 class Data {
-    private SQLiteStorage storage = new SQLiteStorage();
+    private SQLiteStorage storage;
+
+    Data(){
+        this( "data.db");
+    }
+    Data(String database){
+        storage = new SQLiteStorage(database);
+    }
+
     private Map<String, Integer> branchPatterns;
 
     void importExcel(String file) throws IOException, SQLException {
@@ -115,6 +123,21 @@ class Data {
         return 1;
     }
 
+/*
+загрузить список для генерации листов excel
+
+цикл генерируем лист
+задаем форматирование
+
+загружаем шапку листа
+генерируем шапку
+загружаем список для генерации листа
+цикл генерируем данные в лист
+загружаем окончание листа
+генерируем окончание
+
+запись в файл
+*/
 
     void getReport(int month, int year) throws SQLException, IOException {
 
@@ -124,10 +147,13 @@ class Data {
         XSSFWorkbook workbook = new XSSFWorkbook();
         ExcelStyles excelStyles = new ExcelStyles(workbook);
 
-        List<String> branches = storage.getBranchesListInReport(beginDate, endDate, EventTypes.ОБУЧЕНИЕ);
+        //Создаем множество всех филиалов (так как они могут повторяться) у которых было Обучение и Тех учеба
+        // за указанный период
+        Set<String> branches = storage.getBranchesListInReport(beginDate, endDate, EventTypes.ОБУЧЕНИЕ);
+        branches.addAll(storage.getBranchesListInReport(beginDate, endDate, EventTypes.ТЕХУЧЕБА));
 
         //Если за указанный периуд мероприяий не проводилось то завершение программы
-        if (branches.isEmpty()){
+        if (branches.isEmpty()) {
             System.out.println("За период с " + beginDate + " по " + endDate + ". Мероприятий не проводилось.");
             System.exit(0);
         }
@@ -148,46 +174,55 @@ class Data {
             sheet.addMergedRegion(new CellRangeAddress(6, 6, 0, 3));
             // Добавление шапки в лист
             List<CellData> reportHeader = storage.getTemplate("report_header");
-            for (int i = 0; i < reportHeader.size(); i++) {
-                switch (i) {
-                    case 3:
-                        if ("Администрация".equals(branch)) {
-                            reportHeader.get(i).setValueStr("В Администрация OOO «Газпром трансгаз Москва»").addCell(sheet, excelStyles);
-                        } else {
-                            reportHeader.get(i).setValueStr(new StringBuilder().append("В филиал ").append(branch).toString()).addCell(sheet, excelStyles);
-                        }
-                        break;
-                    case 5:
-                        //todo исправить вывод месяца на вывод с маленькой буквы
-                        reportHeader.get(i)
-                                .setValueStr(new StringBuilder()
-                                        .append("за ").append(beginDate.format(DateTimeFormatter.ofPattern("LLLL YYYY")))
-                                        .append(" года").toString())
-                                .addCell(sheet, excelStyles);
-                        break;
-                    default:
-                        reportHeader.get(i).addCell(sheet, excelStyles);
-                }
+            for (CellData cellData : reportHeader) {
+                cellData.addCell(sheet, excelStyles);
             }
+            //Подстановка в шапку переменных полей
+            //Название филиала
+            if ("Администрация".equals(branch)) {
+                sheet.getRow(3).getCell(0).setCellValue("В Администрация OOO «Газпром трансгаз Москва»");
+            } else {
+                sheet.getRow(3).getCell(0).setCellValue("В филиал " + branch);
+            }
+            //Дата
+            //todo исправить вывод месяца на вывод с маленькой буквы
+            sheet.getRow(6).getCell(0)
+                    .setCellValue("за " + beginDate.format(DateTimeFormatter.ofPattern("LLLL YYYY")) + " года");
+
 
             //-------Добавление основных данных в лист(людей)-------
 
             int rowNum = 10;
+
+            //Создание списка всех мероприятий у которых было Обучение и Тех учеба за указанный период
             List<String> events = storage.getEventsByBranchListInReport(branch, beginDate, endDate, EventTypes.ОБУЧЕНИЕ);
+            events.addAll(storage.getEventsByBranchListInReport(branch, beginDate, endDate, EventTypes.ТЕХУЧЕБА));
 
             for (String event : events) {
                 int startRowMerged = rowNum;
-                new CellData(rowNum,2, event,"t12alCCWB").addCell(sheet, excelStyles);
+                new CellData(rowNum, 2, event, "t12alCCWB").addCell(sheet, excelStyles);
 
-                Map<String, Integer> persons = storage.getPersonsInEventListInReport(branch, event, beginDate, endDate, EventTypes.ОБУЧЕНИЕ);
+                Map<String, Integer> persons = storage.getPersonsInEventListInReport(branch, event, beginDate, endDate);
                 for (Map.Entry<String, Integer> person : persons.entrySet()) {
-                    new CellData(rowNum,0,rowNum-9,"t12alCCWB").addCell(sheet, excelStyles);
-                    new CellData(rowNum,1, person.getKey(),"t12alLCWB").addCell(sheet, excelStyles);
-                    new CellData(rowNum,3, person.getValue(),"t12alCCWB").addCell(sheet, excelStyles);
+                    new CellData(rowNum, 0, rowNum - 9, "t12alCCWB").addCell(sheet, excelStyles);
+                    new CellData(rowNum, 1, person.getKey(), "t12alLCWB").addCell(sheet, excelStyles);
+                    new CellData(rowNum, 3, person.getValue(), "t12alCCWB").addCell(sheet, excelStyles);
                     rowNum++;
                 }
+
                 if (persons.size() > 1) {
-                    //todo выровнить ячейку по тексту
+                    //вырравнивание высоты обединенных ячеек
+                    //Вычисление числа строк которое займет название мероприятия после объединения
+                    XSSFCellStyle style = excelStyles.getStyle("t12alCCWB");
+                    int rowsHigh = Util.getHigh(style.getFont().getFontName(), style.getFont().getFontHeightInPoints(), event, sheet.getColumnWidthInPixels(2));
+                    int rowsIs = rowNum - startRowMerged;
+                    float newHigh = (sheet.getDefaultRowHeightInPoints() * rowsHigh) / rowsIs;
+                    if (rowsHigh > rowsIs){
+                        for (int i = startRowMerged; i < rowNum ; i++) {
+                            sheet.getRow(i).setHeightInPoints(newHigh);
+                        }
+                    }
+
                     //обединение клеток с одним мероприятием
                     sheet.addMergedRegion(new CellRangeAddress(startRowMerged, rowNum - 1, 2, 2));
                 }
@@ -197,20 +232,13 @@ class Data {
 
             // Обединение ячеек итога
             sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, 0, 2));
-
+            // Добавление хвоста в лист
             List<CellData> reportFooter = storage.getTemplate("report_footer");
-            for (int i = 0; i < reportFooter.size(); i++) {
-                switch (i) {
-                    case 3:
-                        reportFooter.get(i)
-                                .setValueStr("SUM(D11:D" + rowNum + ")")
-                                .setIsFormula()
-                                .addCell(sheet,excelStyles,rowNum);
-                        break;
-                    default:
-                        reportFooter.get(i).addCell(sheet, excelStyles, rowNum);
-                }
+            for (CellData cellData : reportFooter) {
+                cellData.addCell(sheet, excelStyles, rowNum);
             }
+            //Подстановка в формулы в итог
+            sheet.getRow(rowNum).getCell(3).setCellFormula("SUM(D11:D" + rowNum + ")");
 
             //Добавляем свойство "Разместить не более чем на 1 странице"
             XSSFPrintSetup printSetup = sheet.getPrintSetup();
