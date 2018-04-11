@@ -29,7 +29,7 @@ t12........ - Times New Roman 12
 .........BB - Обрамление ячейки линиями снизу
  */
 public class ExcelStyles {
-    private Map<String, XSSFCellStyle> cellStylesMap = new HashMap<>();
+    private final Map<String, XSSFCellStyle> cellStylesMap = new HashMap<>();
     public ExcelStyles(XSSFWorkbook wb) {
 
         //-------Шрифты-------

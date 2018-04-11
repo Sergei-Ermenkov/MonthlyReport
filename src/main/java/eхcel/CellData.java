@@ -5,18 +5,18 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 public class CellData {
-    private int rowNum;
-    private int cellNum;
+    private final int rowNum;
+    private final int cellNum;
     private String valueStr;
     private int valueInt;
-    private String style;
+    private final String style;
     private int typeData;
 
     public CellData(int rowNum, int cellNum, String valueStr, String style) {
         this(rowNum, cellNum, valueStr, style, false);
     }
 
-    public CellData(int rowNum, int cellNum, String valueStr, String style, boolean isFormula) {
+    private CellData(int rowNum, int cellNum, String valueStr, String style, boolean isFormula) {
         this.rowNum = rowNum;
         this.cellNum = cellNum;
         this.valueStr = valueStr;
@@ -54,21 +54,18 @@ public class CellData {
         cell.setCellStyle(excelStyles.getStyle(style));
     }
 
-    public CellData setValueStr(String valueStr) {
-        this.valueStr = valueStr;
-        return this;
-    }
-
-    public CellData setIsFormula() {
-        this.typeData = 3;
-        return this;
-    }
-
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("CellData{ rowNum=").append(rowNum).append(", cellNum=").append(cellNum).append(", valueStr='")
-                .append(valueStr).append(", style='").append(style).append("'}");
-        return sb.toString();
+        return new StringBuilder()
+                .append("CellData{ rowNum=")
+                .append(rowNum)
+                .append(", cellNum=")
+                .append(cellNum)
+                .append(", valueStr='")
+                .append(valueStr)
+                .append(", style='")
+                .append(style)
+                .append("'}")
+                .toString();
     }
 }

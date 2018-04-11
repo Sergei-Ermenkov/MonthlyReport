@@ -1,97 +1,75 @@
+import data.DatePeriud;
+import data.Event;
+import data.EventTypes;
 import eхcel.CellData;
 import eхcel.ExcelStyles;
 import eхcel.Util;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.*;
+import data.Person;
+import storage.SQLiteStorage;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 //TODO попробовать написать с помощю org.apache.poi.ss.util.CellUtil.createCell(Row row, int column, java.lang.String value)
 class Data {
-    private SQLiteStorage storage;
-
-    Data(){
-        this( "data.db");
-    }
-    Data(String database){
-        storage = new SQLiteStorage(database);
-    }
-
-    private Map<String, Integer> branchPatterns;
+    private final SQLiteStorage storage = new SQLiteStorage();
+    private Map<String, String> branchPatterns;
 
     void importExcel(String file) throws IOException, SQLException {
-        // Загрузка книги Excel
         try (FileInputStream fileInputStream = new FileInputStream(file);
              XSSFWorkbook excelBook = new XSSFWorkbook(fileInputStream)) {
-
-            // Проверка на валидность входных данных в excel
             validImportData(excelBook);
 
-            // Проход по всем листам, строкам и полям.
             for (Sheet sheet : excelBook) {
-                String eventName;
-                String decree;
-                LocalDate beginDate = null;
-                LocalDate endDate = null;
-                EventTypes type;
-                int event_id = 0;
-
-                for (int i = 0; i < sheet.getLastRowNum() + 1; i++) {
-                    // Переменные относящиеся к человеку (строки Excel)
-                    String name;
-                    String position;
-                    int manHours;
-                    int branch_id;
-                    int person_id;
-
+                Event event = getEventFromExcel(sheet);
+                for (int i = 2; i < sheet.getLastRowNum() + 1; i++) {
                     Row row = sheet.getRow(i);
-                    // различная обработка строк
-                    switch (i) {
-                        case 0:
-                            beginDate = row.getCell(0).getDateCellValue()
-                                    .toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-                            endDate = row.getCell(1).getDateCellValue()
-                                    .toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-                            break;
-                        case 1:
-                            eventName = row.getCell(0).getStringCellValue();
-                            decree = row.getCell(1).getStringCellValue();
-                            type = Enum.valueOf(EventTypes.class, row.getCell(2).getStringCellValue());
-
-                            event_id = storage.addEvent(type, eventName, decree, beginDate, endDate);
-                            break;
-                        default:
-                            name = row.getCell(0).getStringCellValue();
-                            position = row.getCell(1).getStringCellValue();
-                            branch_id = findBranch(position);
-                            manHours = (int) row.getCell(2).getNumericCellValue();
-
-                            person_id = storage.addPerson(name, position, branch_id);
-                            storage.addPersonToEvent(event_id, person_id, manHours);
-                    }
+                    event.addPerson(getPersonFromExcel(row));
                 }
+                storage.addEventPersons(event);
             }
-        } catch (FileNotFoundException e){
-            System.out.printf("Не найден файл (*.xlsx): %s",file);
+        } catch (FileNotFoundException e) {
+            System.out.printf("Не найден файл (*.xlsx): %s", file);
         }
+
     }
 
-    //Использовать foreach нельзя так как в таком случае он пропускает пустые значения
+    private Event getEventFromExcel(Sheet sheet) {
+        String eventName = sheet.getRow(1).getCell(0).getStringCellValue();
+        String decree = sheet.getRow(1).getCell(1).getStringCellValue();
+        DatePeriud date = new DatePeriud(sheet.getRow(0), 0, 1);
+        EventTypes type = Enum.valueOf(EventTypes.class, sheet.getRow(1).getCell(2).getStringCellValue());
+
+        return new Event(type, eventName, decree, date);
+    }
+
+    private Person getPersonFromExcel(Row row) throws SQLException {
+        String name = row.getCell(0).getStringCellValue();
+        String position = row.getCell(1).getStringCellValue();
+        String branch = findBranch(position);
+        int manHours = (int) row.getCell(2).getNumericCellValue();
+
+        return new Person(name, position, branch, manHours);
+    }
+
+
     private void validImportData(XSSFWorkbook excelBook) {
         StringBuilder errors = new StringBuilder();
         for (Sheet sheet : excelBook) {
+            //Использовать foreach нельзя так как в таком случае он пропускает пустые значения
             for (int i = 0; i < sheet.getLastRowNum() + 1; i++) {
                 Row row = sheet.getRow(i);
                 if (row == null ||
@@ -108,58 +86,52 @@ class Data {
         if (errors.length() != 0) throw new IllegalArgumentException(errors.toString());
     }
 
-    // Анализирует строку должности и возвращает ID номер филиала из базы
-    private int findBranch(String position) throws SQLException {
+    private String findBranch(String position) throws SQLException {
         if (branchPatterns == null)
             branchPatterns = storage.getBranchPatterns();
-        // делаем все буквы маленькие и удаляем пробелы.
         String positionString = position.toLowerCase().replaceAll("\\s", "");
-        // сопостовляем строчку с ключами словоря филиалов
-        for (Map.Entry<String, Integer> entry : branchPatterns.entrySet()) {
+        for (Map.Entry<String, String> entry : branchPatterns.entrySet()) {
             if (positionString.contains(entry.getKey()))
                 return entry.getValue();
         }
         //Если не совпало ни с одним из паттернов значит это Администрация
-        return 1;
+        return "Администрация";
     }
 
-/*
-загрузить список для генерации листов excel
+    /*
+    загрузить список для генерации листов excel
 
-цикл генерируем лист
-задаем форматирование
+    цикл генерируем лист
+    задаем форматирование
 
-загружаем шапку листа
-генерируем шапку
-загружаем список для генерации листа
-цикл генерируем данные в лист
-загружаем окончание листа
-генерируем окончание
+    загружаем шапку листа
+    генерируем шапку
+    загружаем список для генерации листа
+    цикл генерируем данные в лист
+    загружаем окончание листа
+    генерируем окончание
 
-запись в файл
-*/
-
+    запись в файл
+    */
     void getReport(int month, int year) throws SQLException, IOException {
 
-        LocalDate beginDate = LocalDate.of(year, month, 1);
-        LocalDate endDate = LocalDate.of(year, month, LocalDate.of(year, month, 1).lengthOfMonth());
+        DatePeriud date = new DatePeriud(month, year);
 
         XSSFWorkbook workbook = new XSSFWorkbook();
         ExcelStyles excelStyles = new ExcelStyles(workbook);
 
-        //Создаем множество всех филиалов (так как они могут повторяться) у которых было Обучение и Тех учеба
+        //Создаем Set всех филиалов (так как они могут повторяться) у которых было Обучение и Тех учеба
         // за указанный период
-        Set<String> branches = storage.getBranchesListInReport(beginDate, endDate, EventTypes.ОБУЧЕНИЕ);
-        branches.addAll(storage.getBranchesListInReport(beginDate, endDate, EventTypes.ТЕХУЧЕБА));
+        Set<String> branches = storage.getBranchesStrings(date, EventTypes.ОБУЧЕНИЕ);
+        branches.addAll(storage.getBranchesStrings(date, EventTypes.ТЕХУЧЕБА));
 
-        //Если за указанный периуд мероприяий не проводилось то завершение программы
+        //Если за указанный периуд мероприятий не проводилось то завершение программы
         if (branches.isEmpty()) {
-            System.out.println("За период с " + beginDate + " по " + endDate + ". Мероприятий не проводилось.");
-            System.exit(0);
+            throw new NullPointerException("За период с " + date.getBeginDate() + " по " + date.getEndDate() + ". Мероприятий не проводилось.");
         }
 
         for (String branch : branches) {
-            XSSFSheet sheet = workbook.createSheet(branch);
+            XSSFSheet sheet = workbook.createSheet(WorkbookUtil.createSafeSheetName(branch));
 
             //-------Форматирование листа и добавление шапки-------
 
@@ -187,58 +159,55 @@ class Data {
             //Дата
             //todo исправить вывод месяца на вывод с маленькой буквы
             sheet.getRow(6).getCell(0)
-                    .setCellValue("за " + beginDate.format(DateTimeFormatter.ofPattern("LLLL YYYY")) + " года");
+                    .setCellValue("за " + date.getBeginDate().format(DateTimeFormatter.ofPattern("LLLL YYYY", Locale.forLanguageTag("ru"))) + " года");
 
 
             //-------Добавление основных данных в лист(людей)-------
 
-            int rowNum = 10;
+            int cursorRowNum = 10;
 
-            //Создание списка всех мероприятий у которых было Обучение и Тех учеба за указанный период
-            List<String> events = storage.getEventsByBranchListInReport(branch, beginDate, endDate, EventTypes.ОБУЧЕНИЕ);
-            events.addAll(storage.getEventsByBranchListInReport(branch, beginDate, endDate, EventTypes.ТЕХУЧЕБА));
+            List<Event> events = storage.getEvents(date, EventTypes.ОБУЧЕНИЕ, branch);
+            events.addAll(storage.getEvents(date, EventTypes.ТЕХУЧЕБА, branch));
 
-            for (String event : events) {
-                int startRowMerged = rowNum;
-                new CellData(rowNum, 2, event, "t12alCCWB").addCell(sheet, excelStyles);
+            for (Event event : events) {
+                int startRowMerged = cursorRowNum;
+                new CellData(cursorRowNum, 2, event.getName(), "t12alCCWB").addCell(sheet, excelStyles);
 
-                Map<String, Integer> persons = storage.getPersonsInEventListInReport(branch, event, beginDate, endDate);
-                for (Map.Entry<String, Integer> person : persons.entrySet()) {
-                    new CellData(rowNum, 0, rowNum - 9, "t12alCCWB").addCell(sheet, excelStyles);
-                    new CellData(rowNum, 1, person.getKey(), "t12alLCWB").addCell(sheet, excelStyles);
-                    new CellData(rowNum, 3, person.getValue(), "t12alCCWB").addCell(sheet, excelStyles);
-                    rowNum++;
+                for (Person person : event.getPersons()) {
+                    new CellData(cursorRowNum, 0, cursorRowNum - 9, "t12alCCWB").addCell(sheet, excelStyles);
+                    new CellData(cursorRowNum, 1, person.getName(), "t12alLCWB").addCell(sheet, excelStyles);
+                    new CellData(cursorRowNum, 3, person.getManHours(), "t12alCCWB").addCell(sheet, excelStyles);
+                    cursorRowNum++;
                 }
 
-                if (persons.size() > 1) {
+                if (event.personsSize() > 1) {
                     //вырравнивание высоты обединенных ячеек
                     //Вычисление числа строк которое займет название мероприятия после объединения
                     XSSFCellStyle style = excelStyles.getStyle("t12alCCWB");
-                    int rowsHigh = Util.getHigh(style.getFont().getFontName(), style.getFont().getFontHeightInPoints(), event, sheet.getColumnWidthInPixels(2));
-                    int rowsIs = rowNum - startRowMerged;
+                    int rowsHigh = Util.getHigh(style.getFont().getFontName(), style.getFont().getFontHeightInPoints(), event.getName(), sheet.getColumnWidthInPixels(2));
+                    int rowsIs = cursorRowNum - startRowMerged;
                     float newHigh = (sheet.getDefaultRowHeightInPoints() * rowsHigh) / rowsIs;
-                    if (rowsHigh > rowsIs){
-                        for (int i = startRowMerged; i < rowNum ; i++) {
+                    if (rowsHigh > rowsIs) {
+                        for (int i = startRowMerged; i < cursorRowNum; i++) {
                             sheet.getRow(i).setHeightInPoints(newHigh);
                         }
                     }
-
                     //обединение клеток с одним мероприятием
-                    sheet.addMergedRegion(new CellRangeAddress(startRowMerged, rowNum - 1, 2, 2));
+                    sheet.addMergedRegion(new CellRangeAddress(startRowMerged, cursorRowNum - 1, 2, 2));
                 }
             }
 
             //-------Добавление Итога и хвоста страницы-------
 
             // Обединение ячеек итога
-            sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, 0, 2));
+            sheet.addMergedRegion(new CellRangeAddress(cursorRowNum, cursorRowNum, 0, 2));
             // Добавление хвоста в лист
             List<CellData> reportFooter = storage.getTemplate("report_footer");
             for (CellData cellData : reportFooter) {
-                cellData.addCell(sheet, excelStyles, rowNum);
+                cellData.addCell(sheet, excelStyles, cursorRowNum);
             }
             //Подстановка в формулы в итог
-            sheet.getRow(rowNum).getCell(3).setCellFormula("SUM(D11:D" + rowNum + ")");
+            sheet.getRow(cursorRowNum).getCell(3).setCellFormula("SUM(D11:D" + cursorRowNum + ")");
 
             //Добавляем свойство "Разместить не более чем на 1 странице"
             XSSFPrintSetup printSetup = sheet.getPrintSetup();
@@ -248,7 +217,113 @@ class Data {
         }
 
         //Запись в файл
-        try (FileOutputStream fileOut = new FileOutputStream("Отчет по обучению " + month + "_" + year + ".xlsx")) {
+        try (FileOutputStream fileOut = new FileOutputStream("Отчет по обучению_" + month + "_" + year + ".xlsx")) {
+            workbook.write(fileOut);
+        }
+    }
+
+
+    //-------------------------------------------------------------------------------------------------------------
+
+
+    void getSpisok(int month, int year) throws SQLException, IOException {
+
+        DatePeriud date = new DatePeriud(month, year);
+
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        ExcelStyles excelStyles = new ExcelStyles(workbook);
+
+        List<Event> events = storage.getEvents(date, EventTypes.СЕМИНАР);
+        events.addAll(storage.getEvents(date, EventTypes.ПРОЧЕЕ));
+
+        //Если за указанный периуд мероприяий не проводилось то завершение программы
+        //изменение в проверки условия
+        if (events.isEmpty()) {
+            throw new NullPointerException("За период с " + date.getBeginDate() + " по " + date.getEndDate() + ". Мероприятий не проводилось.");
+        }
+
+        //изменение в переменных
+        //todo добавить проверку на совпадение нового имени с именем в книги
+        for (Event event : events) {
+            XSSFSheet sheet = workbook.createSheet(WorkbookUtil.createSafeSheetName(event.getName()));
+
+            //-------Форматирование листа и добавление шапки-------
+
+            // Установка ширины колонок на листе
+            sheet.setColumnWidth(0, 1792);
+            sheet.setColumnWidth(1, 9069);
+            sheet.setColumnWidth(2, 7350);
+            sheet.setColumnWidth(3, 4717);
+
+            //изменение ------------------>
+            // Обеденение ячеек
+            sheet.addMergedRegion(new CellRangeAddress(3, 3, 0, 3));
+            sheet.addMergedRegion(new CellRangeAddress(4, 4, 0, 3));
+            sheet.addMergedRegion(new CellRangeAddress(5, 5, 0, 3));
+            //<----------------------------
+
+            // Добавление шапки в лист
+            //изменения в вызове
+            List<CellData> listHeader = storage.getTemplate("list_header");
+            for (CellData cellData : listHeader) {
+                cellData.addCell(sheet, excelStyles);
+            }
+
+            //изменение ------------------>
+            //Подстановка в шапку переменных полей
+            //Название мероприятия (выровнять высоту строки)
+            //todo заменить ручное указание стиля
+            XSSFCellStyle style = excelStyles.getStyle("t12balCW");
+            sheet.getRow(4).getCell(0)
+                    .setCellValue("участников мероприятия: " + event.getName());
+            int rowsHigh = Util.getHigh(style.getFont().getFontName(),
+                    style.getFont().getFontHeightInPoints(),
+                    event.getName(),
+                    sheet.getColumnWidthInPixels(0) +
+                            sheet.getColumnWidthInPixels(1) +
+                            sheet.getColumnWidthInPixels(2) +
+                            sheet.getColumnWidthInPixels(3));
+            if (rowsHigh > 1)
+                sheet.getRow(4).setHeightInPoints(sheet.getDefaultRowHeightInPoints() * rowsHigh);
+
+            //Период
+            sheet.getRow(5).getCell(0)
+                    .setCellValue("в период " + event.getDate());
+
+            //-------Добавление основных данных в лист(людей)-------
+
+            int cursorRowNum = 9;
+
+            for (Person person : event.getPersons()) {
+                new CellData(cursorRowNum, 0, cursorRowNum - 8, "t12alCCWB").addCell(sheet, excelStyles);
+                new CellData(cursorRowNum, 1, person.getName(), "t12alLCWB").addCell(sheet, excelStyles);
+                new CellData(cursorRowNum, 2, person.getPosition(), "t12alCCWB").addCell(sheet, excelStyles);
+                new CellData(cursorRowNum, 3, person.getManHours(), "t12alCCWB").addCell(sheet, excelStyles);
+                cursorRowNum++;
+            }
+
+            //-------Добавление Итога и хвоста страницы-------
+
+            // Обединение ячеек итога
+            sheet.addMergedRegion(new CellRangeAddress(cursorRowNum, cursorRowNum, 0, 2));
+            // Добавление хвоста в лист
+            List<CellData> reportFooter = storage.getTemplate("report_footer");
+            for (CellData cellData : reportFooter) {
+                cellData.addCell(sheet, excelStyles, cursorRowNum);
+            }
+            //Подстановка в формулы в итог
+            sheet.getRow(cursorRowNum).getCell(3).setCellFormula("SUM(D10:D" + cursorRowNum + ")");
+
+            //Добавляем свойство "Разместить не более чем на 1 странице"
+            XSSFPrintSetup printSetup = sheet.getPrintSetup();
+            sheet.setFitToPage(true);
+            //todo убран ограничитель на 1 страницу по высоте
+            printSetup.setFitWidth((short) 1);
+        }
+
+        //Запись в файл
+        //todo изменен вывод файла
+        try (FileOutputStream fileOut = new FileOutputStream("Список участников семинаров_" + month + "_" + year + ".xlsx")) {
             workbook.write(fileOut);
         }
     }

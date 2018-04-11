@@ -1,7 +1,7 @@
-import org.apache.poi.xssf.extractor.XSSFExcelExtractor;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import report.Report;
+import report.Seminar;
+import report.Training;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -63,13 +63,33 @@ public class Main {
         //String path = "src/main/resources/Blank.xlsx";
         //String path1 = "/Users/mac/IdeaProjects/MonthlyReport/src/main/resources/Spisok0817.xlsx";
 
-        //String jan = "src/main/resources/01/Spisok_01_18.xlsx";
-        //String feb = "src/main/resources/02/Spisok_02_18.xlsx";
+//        String t = "/Users/mac/IdeaProjects/MonthlyReport/src/main/resources/02/Отчет по обучению_сентябрь_2023 СПИСОК.xlsx";
+        //String t = "/Users/mac/IdeaProjects/MonthlyReport/src/main/resources/02/Отчет по обучению_сентябрь_2022.xlsx";
+
+        String jan = "src/main/resources/01/Spisok_01_18.xlsx";
+        String feb = "src/main/resources/02/Spisok_02_18.xlsx";
+
         Data data = new Data();
-        //data.importExcel(jan);
-        //data.importExcel(feb);
-        data.getReport(1, 2018);
-        //data.getReport(2, 2018);
+
+//        data.importExcel(t);
+        data.importExcel(jan);
+        data.importExcel(feb);
+
+        Report traning = new Training(1,2018);
+        traning.makeReport();
+        Report trening1 = new Training(2,2018);
+        trening1.makeReport();
+
+//        Report list = new Seminar(1,2018);
+//        list.makeReport();
+        Report list1 = new Seminar(2,2018);
+        list1.makeReport();
+
+
+        //        data.getReport(1, 2018);
+//        data.getReport(2, 2018);
+//        data.getSpisok(2, 2018);
+
 
     }
 }
