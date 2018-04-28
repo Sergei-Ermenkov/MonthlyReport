@@ -1,4 +1,4 @@
-package eхcel;
+package report;
 
 import java.awt.font.FontRenderContext;
 import java.awt.font.LineBreakMeasurer;
@@ -27,4 +27,5 @@ public class Util {
         // Вышеупомянутое решение не обрабатывает символ новой строки, т. Е. «\n», и только
         // проверяется в горизонтальных сложенных ячейках.
     }
+
 }

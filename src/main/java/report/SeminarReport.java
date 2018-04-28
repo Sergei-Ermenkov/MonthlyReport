@@ -5,7 +5,6 @@ import data.Event;
 import data.EventTypes;
 import data.Person;
 import eхcel.CellData;
-import eхcel.Util;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -16,17 +15,17 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
-public class Seminar extends Report {
-    final int[][] cellRangeAddresses = {{3, 3, 0, 3},
+public class SeminarReport extends Report {
+    private static final int[][] columnWide = {{0, 1792}, {1, 9069}, {2, 7350}, {3, 4717}};
+    private static final int[][] cellRangeAddresses = {{3, 3, 0, 3},
             {4, 4, 0, 3},
             {5, 5, 0, 3}};
-    final String header = "list_header";
-    final int beginBodyRow = 9;
-    final String footer = "footer";
+    private static final String header = "list_header";
+    private static final int beginBodyRow = 9;
+    private static final String footer = "footer";
+    private static final String fileName = "Список участников семинаров_";
 
-    final String fileName = "Список участников семинаров_";
-
-    public Seminar(int month, int year) {
+    public SeminarReport(int month, int year) {
         super(new DatePeriud(month, year));
     }
 
@@ -45,7 +44,7 @@ public class Seminar extends Report {
 
             //-------Форматирование листа и добавление шапки-------
 
-            setWideColumnInExcel(sheet);
+            setColumnWideInExcel(sheet, columnWide);
             setMergedRegionInExcel(sheet, cellRangeAddresses);
             addTemplateToExcel(sheet, header);
 
@@ -80,7 +79,7 @@ public class Seminar extends Report {
         saveToFile(workbook, fileName);
     }
 
-    int addPersonsToExcel(XSSFSheet sheet, Event event, int cursorRowNum) throws SQLException {
+    private int addPersonsToExcel(XSSFSheet sheet, Event event, int cursorRowNum){
         for (Person person : event.getPersons()) {
             new CellData(cursorRowNum, 0, cursorRowNum - 8, "t12alCCWB").addCell(sheet, excelStyles);
             new CellData(cursorRowNum, 1, person.getName(), "t12alLCWB").addCell(sheet, excelStyles);

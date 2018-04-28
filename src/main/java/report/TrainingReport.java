@@ -5,7 +5,6 @@ import data.Event;
 import data.EventTypes;
 import data.Person;
 import eхcel.CellData;
-import eхcel.Util;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -17,18 +16,17 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 
-public class Training extends Report {
-    final int[][] cellRangeAddresses = {{3,3,0,2},
+public class TrainingReport extends Report {
+    private static final int[][] columnWide = {{0, 1792}, {1, 9069}, {2, 7350}, {3, 4717}};
+    private static final int[][] cellRangeAddresses = {{3,3,0,2},
             {5,5,0,3},
             {6,6,0,3}};
+    private static final String header = "report_header";
+    private static final int beginBodyRow = 10;
+    private static final String footer = "footer";
+    private static final String fileName = "Отчет по обучению_";
 
-    final String header = "report_header";
-    final int beginBodyRow = 10;
-    final String footer = "footer";
-
-    final String fileName = "Отчет по обучению_";
-
-    public Training(int month, int year){
+    public TrainingReport(int month, int year){
         super(new DatePeriud(month, year));
     }
 
@@ -36,6 +34,7 @@ public class Training extends Report {
     public void makeReport() throws SQLException, IOException {
         //Создаем Set всех филиалов (так как они могут повторяться) у которых было Обучение и Тех учеба
         // за указанный период
+
         Set<String> branches = storage.getBranchesStrings(date, EventTypes.ОБУЧЕНИЕ);
         branches.addAll(storage.getBranchesStrings(date, EventTypes.ТЕХУЧЕБА));
 
@@ -46,7 +45,7 @@ public class Training extends Report {
 
             //-------Форматирование листа и добавление шапки-------
 
-            setWideColumnInExcel(sheet);
+            setColumnWideInExcel(sheet,columnWide);
             setMergedRegionInExcel(sheet, cellRangeAddresses);
             addTemplateToExcel(sheet, header);
 
@@ -96,7 +95,7 @@ public class Training extends Report {
             cursorRowNum++;
         }
 
-        if (event.personsSize() > 1) {
+        if (event.getNumberOfPersons() > 1) {
             //вырравнивание высоты обединенных ячеек
             //Вычисление числа строк которое займет название мероприятия после объединения
             setHighNameTrainingRow(sheet, event, cursorRowNum, startRowMerged);
@@ -122,7 +121,6 @@ public class Training extends Report {
     }
 
     private void addDateToExcel(XSSFSheet sheet) {
-
         sheet.getRow(6).getCell(0)
                 .setCellValue("за " + date.getMonthYearOfBeginDate() + " года");
     }

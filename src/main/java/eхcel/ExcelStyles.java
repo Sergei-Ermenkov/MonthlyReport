@@ -24,6 +24,7 @@ t12........ - Times New Roman 12
 ....alL.... - выравнивание по горизонтали по левому краю
 ....alCC... - выравнивание по горизонтали по центру, по вертикали по центру
 ....alLC... - выравнивание по горизонтали по левому краю, по вертикали по центру
+....alLH... - выравнивание по горизонтали по левому краю, по вертикали по верхнему краю
 ........W.. - переноса текста в ячейке согласно ее размеру (ширине)
 .........B. - Обрамление ячейки линиями со всех сторон
 .........BB - Обрамление ячейки линиями снизу
@@ -51,6 +52,15 @@ public class ExcelStyles {
         t12bF.setFontHeightInPoints((short) 12); //Устанавливает размер шрифта
         t12bF.setFontName("Times New Roman");    //Задает имя шрифта
         t12bF.setBold(true);                     //Задает жирный шрифт
+
+
+        //-------Стили шаблоны-------
+
+        XSSFCellStyle b = wb.createCellStyle();
+        b.setBorderBottom(BorderStyle.THIN);         //Обрамление линиями снизу
+        b.setBorderTop(BorderStyle.THIN);            //Обрамление линиями сверху
+        b.setBorderLeft(BorderStyle.THIN);           //Обрамление линиями слева
+        b.setBorderRight(BorderStyle.THIN);          //Обрамление линиями справа
 
         //-------Стили-------
 
@@ -82,11 +92,29 @@ public class ExcelStyles {
         t12u.setFont(t12uF);
         cellStylesMap.put("t12u",t12u);
 
+        //t12ualC
+        XSSFCellStyle t12ualC = wb.createCellStyle();
+        t12ualC.setFont(t12uF);
+        t12ualC.setAlignment(HorizontalAlignment.CENTER);    //выравнивание по горизонтали по центру
+        cellStylesMap.put("t12ualC",t12ualC);
+
         //t12alC
         XSSFCellStyle t12alC = wb.createCellStyle();
         t12alC.setFont(t12F);
         t12alC.setAlignment(HorizontalAlignment.CENTER);    //выравнивание по горизонтали по центру
         cellStylesMap.put("t12alC",t12alC);
+
+        //t12alR
+        XSSFCellStyle t12alR = wb.createCellStyle();
+        t12alR.setFont(t12F);
+        t12alR.setAlignment(HorizontalAlignment.RIGHT);    //выравнивание по горизонтали по правому краю
+        cellStylesMap.put("t12alR", t12alR);
+
+        //t12alL
+        XSSFCellStyle t12alL = wb.createCellStyle();
+        t12alL.setFont(t12F);
+        t12alL.setAlignment(HorizontalAlignment.LEFT);    //выравнивание по горизонтали по левому краю
+        cellStylesMap.put("t12alL", t12alL);
 
         //t12balC
         XSSFCellStyle t12balC = wb.createCellStyle();
@@ -118,61 +146,65 @@ public class ExcelStyles {
 
         //t12balRB
         XSSFCellStyle t12balRB = wb.createCellStyle();
+        t12balRB.cloneStyleFrom(b);
         t12balRB.setFont(t12bF);
         t12balRB.setAlignment(HorizontalAlignment.RIGHT);   //выравнивание по горизонтали по праваму краю
-        t12balRB.setBorderBottom(BorderStyle.THIN);         //Обрамление линиями снизу
-        t12balRB.setBorderTop(BorderStyle.THIN);            //Обрамление линиями сверху
-        t12balRB.setBorderLeft(BorderStyle.THIN);           //Обрамление линиями слева
-        t12balRB.setBorderRight(BorderStyle.THIN);          //Обрамление линиями справа
         cellStylesMap.put("t12balRB",t12balRB);
 
         //t12alCWB
         XSSFCellStyle t12alCWB = wb.createCellStyle();
+        t12alCWB.cloneStyleFrom(b);
         t12alCWB.setFont(t12F);
         t12alCWB.setAlignment(HorizontalAlignment.CENTER);  //выравнивание по горизонтали по центру
         t12alCWB.setWrapText(true);                         //переноса текста в ячейке согласно ее размеру (ширине)
-        t12alCWB.setBorderBottom(BorderStyle.THIN);         //Обрамление линиями снизу
-        t12alCWB.setBorderTop(BorderStyle.THIN);            //Обрамление линиями сверху
-        t12alCWB.setBorderLeft(BorderStyle.THIN);           //Обрамление линиями слева
-        t12alCWB.setBorderRight(BorderStyle.THIN);          //Обрамление линиями справа
         cellStylesMap.put("t12alCWB",t12alCWB);
 
         //t12balCWB
         XSSFCellStyle t12balCWB = wb.createCellStyle();
+        t12balCWB.cloneStyleFrom(b);
         t12balCWB.setFont(t12bF);
         t12balCWB.setAlignment(HorizontalAlignment.CENTER); //выравнивание по горизонтали по центру
         t12balCWB.setWrapText(true);                        //переноса текста в ячейке согласно ее размеру (ширине)
-        t12balCWB.setBorderBottom(BorderStyle.THIN);         //Обрамление линиями снизу
-        t12balCWB.setBorderTop(BorderStyle.THIN);            //Обрамление линиями сверху
-        t12balCWB.setBorderLeft(BorderStyle.THIN);           //Обрамление линиями слева
-        t12balCWB.setBorderRight(BorderStyle.THIN);          //Обрамление линиями справа
         cellStylesMap.put("t12balCWB",t12balCWB);
 
         //t12alCCWB
         //Стиль столбца Номер по порядку, Наименование курса обучения и Количество человеко-часов
         XSSFCellStyle t12alCCWB = wb.createCellStyle();
+        t12alCCWB.cloneStyleFrom(b);
         t12alCCWB.setFont(t12F);
         t12alCCWB.setAlignment(HorizontalAlignment.CENTER);       //выравнивание по горизонтали по центру
         t12alCCWB.setVerticalAlignment(VerticalAlignment.CENTER); //выравнивание по вертикали по центру
         t12alCCWB.setWrapText(true);                             //переноса текста в ячейке согласно ее размеру (ширине)
-        t12alCCWB.setBorderBottom(BorderStyle.THIN);             //Обрамление линиями снизу
-        t12alCCWB.setBorderTop(BorderStyle.THIN);                //Обрамление линиями сверху
-        t12alCCWB.setBorderLeft(BorderStyle.THIN);               //Обрамление линиями слева
-        t12alCCWB.setBorderRight(BorderStyle.THIN);              //Обрамление линиями справа
         cellStylesMap.put("t12alCCWB",t12alCCWB);
+
+        //t12alCHWB
+        XSSFCellStyle t12alCHWB = wb.createCellStyle();
+        t12alCHWB.cloneStyleFrom(b);
+        t12alCHWB.setFont(t12F);
+        t12alCHWB.setAlignment(HorizontalAlignment.CENTER);      //выравнивание по горизонтали по центру
+        t12alCHWB.setVerticalAlignment(VerticalAlignment.TOP);   //выравнивание по вертикали по верхнему краю
+        t12alCHWB.setWrapText(true);                             //переноса текста в ячейке согласно ее размеру (ширине)
+        cellStylesMap.put("t12alCHWB",t12alCHWB);
 
         //t12alLCWB
         //Стиль столбца ФИО слушателя
         XSSFCellStyle t12alLCWB = wb.createCellStyle();
+        t12alLCWB.cloneStyleFrom(b);
         t12alLCWB.setFont(t12F);
         t12alLCWB.setAlignment(HorizontalAlignment.LEFT);         //выравнивание по горизонтали по левому краю
         t12alLCWB.setVerticalAlignment(VerticalAlignment.CENTER); //выравнивание по вертикали по центру
         t12alLCWB.setWrapText(true);                              //переноса текста в ячейке согласно ее размеру (ширине)
-        t12alLCWB.setBorderBottom(BorderStyle.THIN);              //Обрамление линиями снизу
-        t12alLCWB.setBorderTop(BorderStyle.THIN);                 //Обрамление линиями сверху
-        t12alLCWB.setBorderLeft(BorderStyle.THIN);                //Обрамление линиями слева
-        t12alLCWB.setBorderRight(BorderStyle.THIN);               //Обрамление линиями справа
         cellStylesMap.put("t12alLCWB",t12alLCWB);
+
+        //t12alLHWB
+        XSSFCellStyle t12alLHWB = wb.createCellStyle();
+        t12alLHWB.cloneStyleFrom(b);
+        t12alLHWB.setFont(t12F);
+        t12alLHWB.setAlignment(HorizontalAlignment.LEFT);         //выравнивание по горизонтали по левому краю
+        t12alLHWB.setVerticalAlignment(VerticalAlignment.TOP);    //выравнивание по вертикали по верхнему краю
+        t12alLHWB.setWrapText(true);                              //переноса текста в ячейке согласно ее размеру (ширине)
+        cellStylesMap.put("t12alLHWB",t12alLHWB);
+
     }
 
     public XSSFCellStyle getStyle(String code){

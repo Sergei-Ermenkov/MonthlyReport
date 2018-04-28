@@ -1,10 +1,10 @@
-import report.Report;
-import report.Seminar;
-import report.Training;
+import eхcel.Data;
+import report.ConsolidatedReport;
+import report.SeminarReport;
+import report.TrainingReport;
 
 import java.io.IOException;
 import java.sql.SQLException;
-
 
 /*
 Переписал программу с испрользованием встраиваемой базы SQLite
@@ -21,7 +21,6 @@ import java.sql.SQLException;
  */
 
 /**
- *
  * @author Sergei Ermenkov
  */
 
@@ -49,8 +48,8 @@ public class Main {
                     break;
                 case "-r":
                     try {
-                        new Data().getReport(Integer.valueOf(args[1]), Integer.valueOf(args[2]));
-                    } catch (NumberFormatException e){
+                        new TrainingReport(Integer.valueOf(args[1]), Integer.valueOf(args[2])).makeReport();
+                    } catch (NumberFormatException e) {
                         System.out.println("Месяц и год должны быть числа");
                     }
             }
@@ -68,28 +67,19 @@ public class Main {
 
         String jan = "src/main/resources/01/Spisok_01_18.xlsx";
         String feb = "src/main/resources/02/Spisok_02_18.xlsx";
+        String otch = "src/main/resources/03_2018.xlsx";
 
         Data data = new Data();
-
 //        data.importExcel(t);
-        data.importExcel(jan);
-        data.importExcel(feb);
+        //data.importExcel(jan);
+        //data.importExcel(feb);
 
-        Report traning = new Training(1,2018);
-        traning.makeReport();
-        Report trening1 = new Training(2,2018);
-        trening1.makeReport();
+        new TrainingReport(1,2018).makeReport();
+        //new TrainingReport(2,2018).makeReport();
 
-//        Report list = new Seminar(1,2018);
-//        list.makeReport();
-        Report list1 = new Seminar(2,2018);
-        list1.makeReport();
+        new SeminarReport(2, 2018).makeReport();
 
-
-        //        data.getReport(1, 2018);
-//        data.getReport(2, 2018);
-//        data.getSpisok(2, 2018);
-
+        new ConsolidatedReport(2, 2018).makeReport();
 
     }
 }

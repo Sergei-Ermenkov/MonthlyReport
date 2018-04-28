@@ -9,10 +9,7 @@ import data.Person;
 import java.sql.*;
 import java.util.*;
 
-//todo несколько записей можно добавлять с помощю BEGIN TRANSACTION; --> в случае неудачи ROLLBACK; -->COMMIT;
-//todo или batch функции
-//todo при использовании транзакции драйвер использует 1 соединение не прерывая его пока транзакция не будет закрыта
-//todo посмотреть на http://zametkinapolyah.ru/zametki-o-mysql/chast-9-3-komanda-rollback-v-bazax-dannyx-sqlite-operator-rollback-v-sqlite3.html#__ROLLBACK_TRANSACTION_SQLite3
+//todo: Не проработан вариант если мероприятие больше отчетного периуда (мероприятие включает полностью отчетный период)
 public class SQLiteStorage {
 
     private Connection connect() throws SQLException {
@@ -68,14 +65,12 @@ public class SQLiteStorage {
     //Списков филиалов вошедших в отчет за указанные даты по указанному типу(отчет по обучению)
     public Set<String> getBranchesStrings(DatePeriud date, EventTypes type) throws SQLException {
         Set<String> result = new HashSet<>();
-        String sql = "SELECT DISTINCT branch  FROM report WHERE ((begin_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?)) AND type=?";
+        String sql = "SELECT DISTINCT branch  FROM report WHERE (begin_date <= ? AND end_date >= ?) AND type=?";
         try (Connection conn = this.connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, date.getBeginDate().toString());
-            pstmt.setString(2, date.getEndDate().toString());
-            pstmt.setString(3, date.getBeginDate().toString());
-            pstmt.setString(4, date.getEndDate().toString());
-            pstmt.setInt(5, type.ordinal());
+            pstmt.setString(1, date.getEndDate().toString());
+            pstmt.setString(2, date.getBeginDate().toString());
+            pstmt.setInt(3, type.ordinal());
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 result.add(rs.getString(1));
@@ -88,7 +83,7 @@ public class SQLiteStorage {
     public List<Event> getEvents(DatePeriud date, EventTypes type, String branch) throws SQLException {
         List<Event> result = new ArrayList<>();
         String dateView = createViewSqlQuery(date);
-        String eventsSql = "SELECT DISTINCT begin_date, end_date, event_name, decree FROM date_view WHERE type=? AND branch=?";
+        String eventsSql = "SELECT DISTINCT begin_date, end_date, event_name, decree FROM date_view WHERE type=? AND branch=? ORDER BY begin_date";
         String personsSql = "SELECT person_name, position, branch, man_hours FROM date_view WHERE branch=? AND event_name=?";
         try (Connection conn = this.connect()) {
             Statement viewPstmt = conn.createStatement();
@@ -126,7 +121,7 @@ public class SQLiteStorage {
     public List<Event> getEvents(DatePeriud date, EventTypes type) throws SQLException {
         List<Event> result = new ArrayList<>();
         String dateView = createViewSqlQuery(date);
-        String eventsSql = "SELECT DISTINCT begin_date, end_date, event_name, decree FROM date_view WHERE type=?";
+        String eventsSql = "SELECT DISTINCT begin_date, end_date, event_name, decree FROM date_view WHERE type=? ORDER BY begin_date";
         String personsSql = "SELECT person_name, position, branch, man_hours FROM date_view WHERE event_name=?";
         try (Connection conn = this.connect()) {
             Statement viewPstmt = conn.createStatement();
@@ -159,19 +154,53 @@ public class SQLiteStorage {
         return result;
     }
 
-    private String createViewSqlQuery(DatePeriud date) {
-        return new StringBuilder()
-                .append("CREATE TEMP VIEW date_view AS SELECT * FROM report WHERE (begin_date BETWEEN '")
-                .append(date.getBeginDate().toString())
-                .append("' AND '")
-                .append(date.getEndDate().toString())
-                .append("') OR (end_date BETWEEN '")
-                .append(date.getBeginDate().toString())
-                .append("' AND '")
-                .append(date.getEndDate().toString())
-                .append("')")
-                .toString();
+    public List<Event> getEvents(DatePeriud date) throws SQLException {
+        List<Event> result = new ArrayList<>();
+        String dateView = createViewSqlQuery(date);
+        String eventsSql = "SELECT DISTINCT begin_date, end_date, type, event_name, decree FROM date_view ORDER BY begin_date";
+        String personsSql = "SELECT person_name, position, branch, man_hours FROM date_view WHERE event_name=?";
+        try (Connection conn = this.connect()) {
+            Statement viewPstmt = conn.createStatement();
+            viewPstmt.executeUpdate(dateView);
+            viewPstmt.close();
+
+            PreparedStatement pstmt = conn.prepareStatement(eventsSql);
+            ResultSet rse = pstmt.executeQuery();
+            while (rse.next()) {
+                result.add(new Event(rse.getInt("type"), rse.getString("event_name"), rse.getString("decree"),
+                        new DatePeriud(rse.getString("begin_date"), rse.getString("end_date"))));
+            }
+            rse.close();
+
+            pstmt = conn.prepareStatement(personsSql);
+            for (Event event : result) {
+                pstmt.setString(1, event.getName());
+                ResultSet rsp = pstmt.executeQuery();
+                while (rsp.next()) {
+                    event.addPerson(new Person(rsp.getString("person_name"),
+                            rsp.getString("position"),
+                            rsp.getString("branch"),
+                            rsp.getInt("man_hours")));
+                }
+                rsp.close();
+            }
+            pstmt.close();
+        }
+        return result;
     }
+
+
+    private String createViewSqlQuery(DatePeriud date) {
+        return "CREATE TEMP VIEW date_view AS SELECT * FROM report WHERE begin_date <='" +
+                date.getEndDate().toString() +
+                "' AND end_date >= '" +
+                date.getBeginDate().toString() +
+                "'";
+    }
+
+    private final String header = "consolidated_header";
+    private final int beginBodyRow = 11;
+    private final String footer = "consolidated_footer";
 
     //(отчет по обучению, списки)
     public List<CellData> getTemplate(String name) throws SQLException {
@@ -185,6 +214,12 @@ public class SQLiteStorage {
                 break;
             case "footer":
                 sql = "SELECT row, cell, value, style FROM report_footer";
+                break;
+            case "consolidated_header":
+                sql = "SELECT row, cell, value, style FROM consolidated_header";
+                break;
+            case "consolidated_footer":
+                sql = "SELECT row, cell, value, style FROM consolidated_footer";
                 break;
             default:
                 throw new IllegalArgumentException();

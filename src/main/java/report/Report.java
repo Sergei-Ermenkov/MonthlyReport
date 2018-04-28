@@ -6,6 +6,7 @@ import eхcel.CellData;
 import eхcel.ExcelStyles;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import storage.SQLiteStorage;
@@ -17,34 +18,41 @@ import java.util.*;
 
 public abstract class Report {
 
-    protected static final SQLiteStorage storage = new SQLiteStorage();
+    static final SQLiteStorage storage = new SQLiteStorage();
 
-    protected XSSFWorkbook workbook = new XSSFWorkbook();
-    protected ExcelStyles excelStyles = new ExcelStyles(workbook);
+    final XSSFWorkbook workbook = new XSSFWorkbook();
+    final ExcelStyles excelStyles = new ExcelStyles(workbook);
+    final DatePeriud date;
 
-    protected DatePeriud date;
-
-    protected Report(DatePeriud date) {
+    Report(DatePeriud date) {
         this.date = date;
     }
 
     abstract public void makeReport() throws SQLException, IOException;
 
-    protected void checkCollection(Collection collection) {
+    void checkCollection(Collection collection) {
         if (collection.isEmpty()) {
             throw new NullPointerException("За период с " + date.getBeginDate() + " по " + date.getEndDate() + ". Мероприятий не проводилось.");
         }
 
     }
 
-    protected void setWideColumnInExcel(XSSFSheet sheet) {
-        sheet.setColumnWidth(0, 1792);
-        sheet.setColumnWidth(1, 9069);
-        sheet.setColumnWidth(2, 7350);
-        sheet.setColumnWidth(3, 4717);
+    void setColumnWideInExcel(XSSFSheet sheet, int[][] columnWide) {
+        for (int[] wide : columnWide) {
+            sheet.setColumnWidth(wide[0], wide[1]);
+        }
     }
 
-    protected void setMergedRegionInExcel(XSSFSheet sheet, int[][] cellRangeAddresses) {
+    void setRowHighInExcel(XSSFSheet sheet, short[][] rowHigh) {
+        for (short[] high : rowHigh) {
+            XSSFRow row = sheet.getRow(high[0]);
+            if (row == null)
+                row = sheet.createRow(high[0]);
+            row.setHeight(high[1]);
+        }
+    }
+
+    void setMergedRegionInExcel(XSSFSheet sheet, int[][] cellRangeAddresses) {
         for (int i = 0; i < cellRangeAddresses.length; i++) {
             sheet.addMergedRegion(new CellRangeAddress(cellRangeAddresses[i][0],
                     cellRangeAddresses[i][1],
@@ -63,7 +71,6 @@ public abstract class Report {
             cellData.addCell(sheet, excelStyles, cursorRowNum);
         }
     }
-
 
     void saveToFile(Workbook workbook, String name) throws IOException {
         try (FileOutputStream fileOut = new FileOutputStream(name + date.getBeginDate().getMonthValue() + "_" + date.getBeginDate().getYear() + ".xlsx")) {

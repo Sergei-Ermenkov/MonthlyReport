@@ -1,8 +1,7 @@
 package data;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 public class Event {
 
@@ -10,26 +9,38 @@ public class Event {
     private final String name;
     private final String decree;
     private final DatePeriud date;
-    private final Set<Person> persons;
+    private final List<Person> persons;
+    private int sumManHours = 0;
+
+    public Event(int type, String name, String decree, DatePeriud date) {
+        this.type = EventTypes.values()[type];
+        this.name = name;
+        this.decree = decree;
+        this.date = date;
+        this.persons = new ArrayList<>();
+    }
 
     public Event(EventTypes type, String name, String decree, DatePeriud date) {
         this.type = type;
         this.name = name;
         this.decree = decree;
         this.date = date;
-        this.persons = new HashSet<>();
+        this.persons = new ArrayList<>();
     }
 
     public void addPerson(Person person) {
         this.persons.add(person);
+        sumManHours+=person.getManHours();
     }
 
-    public Set<Person> getPersons() {
+    public void addPersons(List<Person> persons) {
+        for (Person person : persons) {
+            addPerson(person);
+        }
+    }
+
+    public List<Person> getPersons() {
         return persons;
-    }
-
-    public int personsSize(){
-        return persons.size();
     }
 
     public EventTypes getType() {
@@ -48,6 +59,19 @@ public class Event {
         return date;
     }
 
+    public int getNumberOfPersons(){
+        return persons.size();
+    }
+
+    public int getSumManHours(){
+        return sumManHours;
+    }
+
+    public int getNumberOfDayFrom(DatePeriud reportDate){
+        return (int) ChronoUnit.DAYS.between(
+                date.getBeginDate().isAfter(reportDate.getBeginDate()) ? date.getBeginDate() : reportDate.getBeginDate(),
+                date.getEndDate().isBefore(reportDate.getEndDate()) ? date.getEndDate() : reportDate.getEndDate()) + 1;
+    }
 
     @Override
     public boolean equals(Object o) {

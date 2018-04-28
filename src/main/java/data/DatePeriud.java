@@ -12,8 +12,6 @@ public class DatePeriud {
 
     private final LocalDate beginDate;
     private final LocalDate endDate;
-    private int month;
-    private int year;
 
     public DatePeriud(int month, int year) {
         this.beginDate = LocalDate.of(year, month, 1);
@@ -41,17 +39,12 @@ public class DatePeriud {
     }
 
     public String getMonthYearOfBeginDate(){
-        //todo исправить вывод месяца на вывод с маленькой буквы
-        return beginDate.format(DateTimeFormatter.ofPattern("LLLL YYYY", Locale.forLanguageTag("ru")));
+        return beginDate.format(DateTimeFormatter.ofPattern("LLLL YYYY", Locale.forLanguageTag("ru"))).toLowerCase();
     }
 
     @Override
     public String toString() {
-            return new StringBuilder()
-                    .append(beginDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
-                    .append('-')
-                    .append(endDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
-                    .toString();
+            return beginDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) + '-' + endDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
     }
 
     @Override

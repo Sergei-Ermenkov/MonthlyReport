@@ -40,7 +40,11 @@ public class CellData {
         XSSFRow row = sheet.getRow(rowNum + shift);
         if (row == null)
             row = sheet.createRow(rowNum + shift);
-        XSSFCell cell = row.createCell(cellNum);
+
+        XSSFCell cell = row.getCell(cellNum);
+        if (cell == null)
+            cell = row.createCell(cellNum);
+
         switch (typeData) {
             case 1:
                 cell.setCellValue(valueStr);
@@ -52,20 +56,5 @@ public class CellData {
                 cell.setCellFormula(valueStr);
         }
         cell.setCellStyle(excelStyles.getStyle(style));
-    }
-
-    @Override
-    public String toString() {
-        return new StringBuilder()
-                .append("CellData{ rowNum=")
-                .append(rowNum)
-                .append(", cellNum=")
-                .append(cellNum)
-                .append(", valueStr='")
-                .append(valueStr)
-                .append(", style='")
-                .append(style)
-                .append("'}")
-                .toString();
     }
 }
