@@ -1,4 +1,4 @@
-package data;
+package zimenki.data;
 
 import java.util.Objects;
 

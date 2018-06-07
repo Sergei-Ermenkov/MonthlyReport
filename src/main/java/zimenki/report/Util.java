@@ -1,4 +1,4 @@
-package report;
+package zimenki.report;
 
 import java.awt.font.FontRenderContext;
 import java.awt.font.LineBreakMeasurer;

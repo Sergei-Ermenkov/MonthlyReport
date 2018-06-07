@@ -1,10 +1,11 @@
-package report;
+package zimenki.report;
 
-import data.DatePeriud;
-import data.Event;
-import data.EventTypes;
-import data.Person;
-import eхcel.CellData;
+import zimenki.data.DatePeriud;
+import zimenki.data.Event;
+import zimenki.data.EventTypes;
+import zimenki.data.Person;
+import zimenki.eхcel.CellData;
+
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -13,6 +14,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -26,8 +28,8 @@ public class TrainingReport extends Report {
     private static final String footer = "footer";
     private static final String fileName = "Отчет по обучению_";
 
-    public TrainingReport(int month, int year){
-        super(new DatePeriud(month, year));
+    public TrainingReport(LocalDate date){
+        super(new DatePeriud(date));
     }
 
     @Override
@@ -35,10 +37,10 @@ public class TrainingReport extends Report {
         //Создаем Set всех филиалов (так как они могут повторяться) у которых было Обучение и Тех учеба
         // за указанный период
 
-        Set<String> branches = storage.getBranchesStrings(date, EventTypes.ОБУЧЕНИЕ);
-        branches.addAll(storage.getBranchesStrings(date, EventTypes.ТЕХУЧЕБА));
+        Set<String> branches = storage.getBranchesStrings(report_periud, EventTypes.ОБУЧЕНИЕ);
+        branches.addAll(storage.getBranchesStrings(report_periud, EventTypes.ТЕХУЧЕБА));
 
-        checkCollection(branches);
+        checkCollection(branches, "обучения");
 
         for (String branch : branches) {
             XSSFSheet sheet = workbook.createSheet(WorkbookUtil.createSafeSheetName(branch));
@@ -57,8 +59,8 @@ public class TrainingReport extends Report {
 
             int cursorRowNum = beginBodyRow;
 
-            List<Event> events = storage.getEvents(date, EventTypes.ОБУЧЕНИЕ, branch);
-            events.addAll(storage.getEvents(date, EventTypes.ТЕХУЧЕБА, branch));
+            List<Event> events = storage.getEvents(report_periud, EventTypes.ОБУЧЕНИЕ, branch);
+            events.addAll(storage.getEvents(report_periud, EventTypes.ТЕХУЧЕБА, branch));
 
             for (Event event : events) {
                 cursorRowNum = addPersonsToExcel(sheet, event, cursorRowNum);
@@ -122,7 +124,7 @@ public class TrainingReport extends Report {
 
     private void addDateToExcel(XSSFSheet sheet) {
         sheet.getRow(6).getCell(0)
-                .setCellValue("за " + date.getMonthYearOfBeginDate() + " года");
+                .setCellValue("за " + report_periud.getMonthYearOfBeginDate() + " года");
     }
 
     private void addFilialNameToExcel(XSSFSheet sheet, String branch) {

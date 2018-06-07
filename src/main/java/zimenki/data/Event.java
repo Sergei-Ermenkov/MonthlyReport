@@ -1,6 +1,5 @@
-package data;
+package zimenki.data;
 
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class Event {
@@ -65,12 +64,6 @@ public class Event {
 
     public int getSumManHours(){
         return sumManHours;
-    }
-
-    public int getNumberOfDayFrom(DatePeriud reportDate){
-        return (int) ChronoUnit.DAYS.between(
-                date.getBeginDate().isAfter(reportDate.getBeginDate()) ? date.getBeginDate() : reportDate.getBeginDate(),
-                date.getEndDate().isBefore(reportDate.getEndDate()) ? date.getEndDate() : reportDate.getEndDate()) + 1;
     }
 
     @Override

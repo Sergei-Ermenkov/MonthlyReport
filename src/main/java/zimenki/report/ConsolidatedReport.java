@@ -1,9 +1,10 @@
-package report;
+package zimenki.report;
 
-import data.DatePeriud;
-import data.Event;
-import data.EventTypes;
-import eхcel.CellData;
+import zimenki.data.DatePeriud;
+import zimenki.data.Event;
+import zimenki.data.EventTypes;
+import zimenki.eхcel.CellData;
+
 import org.apache.poi.ss.usermodel.PrintOrientation;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFPrintSetup;
@@ -11,6 +12,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.List;
 
@@ -27,20 +29,19 @@ public class ConsolidatedReport extends Report {
     private static final String footer = "consolidated_footer";
     private static final String fileName = "Сводный отчет УЧ Зименки_";
 
-    public ConsolidatedReport(int month, int year) {
-        super(new DatePeriud(month, year));
+    public ConsolidatedReport(LocalDate date) {
+        super(new DatePeriud(date));
     }
 
     @Override
     public void makeReport() throws SQLException, IOException {
 
-        List<Event> events = storage.getEvents(date);
+        List<Event> events = storage.getEvents(report_periud);
 
-        checkCollection(events);
+        checkCollection(events, "мероприятия");
 
         combineTech(events);
 
-        //todo: проверить данные
         XSSFSheet sheet = workbook.createSheet("Сводный отчет");
         sheet.getPrintSetup().setOrientation(PrintOrientation.LANDSCAPE);
 
@@ -54,7 +55,7 @@ public class ConsolidatedReport extends Report {
 
 
         sheet.getRow(7).getCell(0)
-                .setCellValue("Сводный отчет о проведенных мероприятиях в УЧ «Зименки» за " + date.getMonthYearOfBeginDate() + " года");
+                .setCellValue("Сводный отчет о проведенных мероприятиях в УЧ «Зименки» за " + report_periud.getMonthYearOfBeginDate() + " года");
         //------------------
 
         //----> Тело <------
@@ -64,7 +65,6 @@ public class ConsolidatedReport extends Report {
         //----> Хвост <-----
 
         // Обединение ячеек итога
-        //TODO: вынести в родителя
         //строка всего
         sheet.addMergedRegion(new CellRangeAddress(cursorRowNum, cursorRowNum, 0, 1));
         //строки фамилий вподписи
@@ -98,32 +98,32 @@ public class ConsolidatedReport extends Report {
         saveToFile(workbook, fileName);
     }
 
-    private void combineTech(List<Event> events){
+    private void combineTech(List<Event> events) {
         Event tech = null;
         Iterator<Event> eventIterator = events.iterator();
-        while (eventIterator.hasNext()){
+        while (eventIterator.hasNext()) {
             Event event = eventIterator.next();
-            if (event.getType() == EventTypes.ТЕХУЧЕБА){
-                if(tech == null)
+            if (event.getType() == EventTypes.ТЕХУЧЕБА) {
+                if (tech == null)
                     tech = new Event(event.getType(), "Проведение технической учебы и производственных инструктажей в Учебной части (Зименки) Учебно-производственного центра.",
                             event.getDecree(), event.getDate());
                 tech.addPersons(event.getPersons());
                 eventIterator.remove();
             }
         }
-        events.add(tech);
+        if (tech != null)
+            events.add(tech);
     }
 
-    private int addEventToExcel(XSSFSheet sheet, List<Event> events, int cursorRowNum){
-
+    private int addEventToExcel(XSSFSheet sheet, List<Event> events, int cursorRowNum) {
         for (Event event : events) {
             new CellData(cursorRowNum, 0, cursorRowNum - 10, "t12alCCWB").addCell(sheet, excelStyles);
             new CellData(cursorRowNum, 1, event.getName(), "t12alLHWB").addCell(sheet, excelStyles);
             new CellData(cursorRowNum, 2, event.getDate().toString(), "t12alCHWB").addCell(sheet, excelStyles);
-            new CellData(cursorRowNum, 3, event.getNumberOfDayFrom(date), "t12alCCWB").addCell(sheet, excelStyles);
+            new CellData(cursorRowNum, 3, event.getDate().intersection(report_periud).getLength(), "t12alCCWB").addCell(sheet, excelStyles);
             new CellData(cursorRowNum, 4, event.getDecree(), "t12alLHWB").addCell(sheet, excelStyles);
             new CellData(cursorRowNum, 5, event.getNumberOfPersons(), "t12alCCWB").addCell(sheet, excelStyles);
-            switch (event.getType()){
+            switch (event.getType()) {
                 case ТЕХУЧЕБА:
                 case ОБУЧЕНИЕ:
                     new CellData(cursorRowNum, 6, event.getSumManHours(), "t12alCCWB").addCell(sheet, excelStyles);
@@ -142,7 +142,7 @@ public class ConsolidatedReport extends Report {
             }
             cursorRowNum++;
         }
-     return cursorRowNum;
+        return cursorRowNum;
     }
 
 

@@ -1,39 +1,58 @@
-package eхcel;
+package zimenki.storage;
 
-import data.DatePeriud;
-import data.Event;
-import data.EventTypes;
+import zimenki.data.DatePeriud;
+import zimenki.data.Event;
+import zimenki.data.EventTypes;
+import zimenki.data.Person;
+import zimenki.eхcel.NotIntersectDateException;
+import zimenki.eхcel.WrongImportFilenameException;
+
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.*;
-import data.Person;
-import storage.SQLiteStorage;
 
+import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
 
-//TODO попробовать написать с помощю org.apache.poi.ss.util.CellUtil.createCell(Row row, int column, java.lang.String value)
-public class Data {
+public class ImportToStorage {
     private final SQLiteStorage storage = new SQLiteStorage();
     private Map<String, String> branchPatterns;
 
-    public void importExcel(String file) throws IOException, SQLException {
+    public void importFromExcel(File file) throws IOException, SQLException {
+        DatePeriud reportDate;
+        try {
+            reportDate = getDateFromFileName(file);
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException | java.time.DateTimeException e){
+            throw new WrongImportFilenameException("Некорректное имя импортируемого файла.");
+        }
+
         try (FileInputStream fileInputStream = new FileInputStream(file);
              XSSFWorkbook excelBook = new XSSFWorkbook(fileInputStream)) {
             validImportData(excelBook);
 
             for (Sheet sheet : excelBook) {
                 Event event = getEventFromExcel(sheet);
+                if (!event.getDate().isIntersection(reportDate))
+                    throw new NotIntersectDateException("Дата отчетного периуда не пересекается с датой мероприятия.");
                 for (int i = 2; i < sheet.getLastRowNum() + 1; i++) {
                     Row row = sheet.getRow(i);
                     event.addPerson(getPersonFromExcel(row));
                 }
-                storage.addEventPersons(event);
+                storage.addEventPersons(event, reportDate);
             }
         }
+    }
+
+    private DatePeriud getDateFromFileName(File file){
+        String[] parse = file.getName().split("[_.]");
+        int year = Integer.parseInt(parse[2]);
+        if ((year < 2000) | (year > 2100)){
+            throw new java.time.DateTimeException("Неверно указан год в названии файла");
+        }
+        return new DatePeriud(Integer.parseInt(parse[1]), year);
     }
 
     private Event getEventFromExcel(Sheet sheet) {

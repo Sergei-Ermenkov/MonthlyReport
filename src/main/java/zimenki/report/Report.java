@@ -1,15 +1,15 @@
-package report;
+package zimenki.report;
 
-import data.DatePeriud;
+import zimenki.data.DatePeriud;
+import zimenki.eхcel.CellData;
+import zimenki.eхcel.ExcelStyles;
+import zimenki.storage.SQLiteStorage;
 
-import eхcel.CellData;
-import eхcel.ExcelStyles;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import storage.SQLiteStorage;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -22,17 +22,17 @@ public abstract class Report {
 
     final XSSFWorkbook workbook = new XSSFWorkbook();
     final ExcelStyles excelStyles = new ExcelStyles(workbook);
-    final DatePeriud date;
+    final DatePeriud report_periud;
 
-    Report(DatePeriud date) {
-        this.date = date;
+    Report(DatePeriud report_periud) {
+        this.report_periud = report_periud;
     }
 
     abstract public void makeReport() throws SQLException, IOException;
 
-    void checkCollection(Collection collection) {
+    void checkCollection(Collection collection, String typeReport) {
         if (collection.isEmpty()) {
-            throw new NullPointerException("За период с " + date.getBeginDate() + " по " + date.getEndDate() + ". Мероприятий не проводилось.");
+            throw new NullEventsException("За период с " + report_periud.getBeginDate() + " по " + report_periud.getEndDate() + ".\n Отсутстуют " + typeReport);
         }
 
     }
@@ -53,11 +53,11 @@ public abstract class Report {
     }
 
     void setMergedRegionInExcel(XSSFSheet sheet, int[][] cellRangeAddresses) {
-        for (int i = 0; i < cellRangeAddresses.length; i++) {
-            sheet.addMergedRegion(new CellRangeAddress(cellRangeAddresses[i][0],
-                    cellRangeAddresses[i][1],
-                    cellRangeAddresses[i][2],
-                    cellRangeAddresses[i][3]));
+        for (int[] cellRangeAddress : cellRangeAddresses) {
+            sheet.addMergedRegion(new CellRangeAddress(cellRangeAddress[0],
+                    cellRangeAddress[1],
+                    cellRangeAddress[2],
+                    cellRangeAddress[3]));
         }
     }
 
@@ -73,9 +73,11 @@ public abstract class Report {
     }
 
     void saveToFile(Workbook workbook, String name) throws IOException {
-        try (FileOutputStream fileOut = new FileOutputStream(name + date.getBeginDate().getMonthValue() + "_" + date.getBeginDate().getYear() + ".xlsx")) {
+        try (FileOutputStream fileOut = new FileOutputStream(name + report_periud.getBeginDate().getMonthValue() + "_" + report_periud.getBeginDate().getYear() + ".xlsx")) {
             workbook.write(fileOut);
         }
     }
+
+
 
 }

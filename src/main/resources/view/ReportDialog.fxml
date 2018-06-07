@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ButtonBar?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane prefHeight="300.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.111" xmlns:fx="http://javafx.com/fxml/1" fx:controller="zimenki.javafxControllers.ReportDialogController">
+   <children>
+      <ButtonBar layoutX="59.0" layoutY="135.0">
+         <buttons>
+            <CheckBox fx:id="consCheckBox" mnemonicParsing="false" selected="true" text="Сводный отчет" />
+            <CheckBox fx:id="reportCheckBox" mnemonicParsing="false" selected="true" text="Отчет по обучению" />
+            <CheckBox fx:id="listCheckBox" mnemonicParsing="false" selected="true" text="Списки семинаров" />
+         </buttons>
+      </ButtonBar>
+      <ToolBar layoutX="59.0" layoutY="65.0">
+         <items>
+            <Label text="Отчет за:" />
+            <ComboBox fx:id="monthBox" prefWidth="150.0" />
+            <ComboBox fx:id="yearBox" prefWidth="150.0" />
+         </items>
+      </ToolBar>
+      <Button fx:id="generateButton" alignment="TOP_LEFT" layoutX="59.0" layoutY="203.0" mnemonicParsing="false" onAction="#handleGenerateReportExcel" text="Сформировать" />
+      <Label layoutX="59.0" layoutY="28.0" prefHeight="17.0" prefWidth="483.0" text="!!! Обязательно проверять людей добавленных в ИТЦ и Администрацию!!!" textAlignment="CENTER" AnchorPane.topAnchor="28.0" />
+   </children>
+</AnchorPane>
